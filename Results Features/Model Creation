@@ -1,0 +1,81 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:roofgrid_uk/app/tiles/models/tile_model.dart';
+
+enum CalculationType {
+  vertical,
+  horizontal,
+}
+
+class SavedResult {
+  final String id;
+  final CalculationType type;
+  final DateTime timestamp;
+  final String projectName;
+  final Map<String, dynamic> tile;
+  final Map<String, dynamic> inputs;
+  final Map<String, dynamic> outputs;
+  final String userId;
+
+  SavedResult({
+    required this.id,
+    required this.type,
+    required this.timestamp,
+    required this.projectName,
+    required this.tile,
+    required this.inputs,
+    required this.outputs,
+    required this.userId,
+  });
+
+  factory SavedResult.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return SavedResult(
+      id: doc.id,
+      type: data['type'] == 'vertical' 
+          ? CalculationType.vertical 
+          : CalculationType.horizontal,
+      timestamp: (data['timestamp'] as Timestamp).toDate(),
+      projectName: data['projectName'],
+      tile: data['tile'],
+      inputs: data['inputs'],
+      outputs: data['outputs'],
+      userId: data['userId'],
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'type': type == CalculationType.vertical ? 'vertical' : 'horizontal',
+      'timestamp': timestamp,
+      'projectName': projectName,
+      'tile': tile,
+      'inputs': inputs,
+      'outputs': outputs,
+      'userId': userId,
+    };
+  }
+}
+
+class NamedInput {
+  final String label;
+  final double value;
+
+  NamedInput({
+    required this.label,
+    required this.value,
+  });
+
+  factory NamedInput.fromJson(Map<String, dynamic> json) {
+    return NamedInput(
+      label: json['label'],
+      value: json['value'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'label': label,
+      'value': value,
+    };
+  }
+}

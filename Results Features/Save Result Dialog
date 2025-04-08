@@ -1,0 +1,249 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:roofgrid_uk/app/auth/providers/auth_provider.dart';
+import 'package:roofgrid_uk/app/results/models/saved_result.dart';
+import 'package:roofgrid_uk/app/results/providers/results_provider.dart';
+import 'package:uuid/uuid.dart';
+
+class SaveResultDialog extends ConsumerStatefulWidget {
+  final Map<String, dynamic> calculationResult;
+  final bool isVertical; // true for vertical, false for horizontal
+
+  const SaveResultDialog({
+    Key? key, 
+    required this.calculationResult, 
+    required this.isVertical
+  }) : super(key: key);
+
+  @override
+  ConsumerState<SaveResultDialog> createState() => _SaveResultDialogState();
+}
+
+class _SaveResultDialogState extends ConsumerState<SaveResultDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _projectNameController = TextEditingController();
+  late List<TextEditingController> _labelControllers;
+  bool _isSaving = false;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Initialize label controllers based on inputs
+    final inputs = widget.calculationResult['inputs'] as Map<String, dynamic>;
+    
+    if (widget.isVertical) {
+      final rafterHeights = inputs['rafterHeights'] as List<double>;
+      _labelControllers = List.generate(
+        rafterHeights.length,
+        (i) => TextEditingController(text: 'Rafter ${i + 1}'),
+      );
+    } else {
+      final widths = inputs['widths'] as List<double>;
+      _labelControllers = List.generate(
+        widths.length,
+        (i) => TextEditingController(text: 'Width ${i + 1}'),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _projectNameController.dispose();
+    for (var controller in _labelControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _saveResult() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    setState(() {
+      _isSaving = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final user = ref.read(authProvider).user;
+      if (user == null) {
+        setState(() {
+          _errorMessage = 'You must be signed in to save results';
+          _isSaving = false;
+        });
+        return;
+      }
+      
+      // Create copy of inputs with labeled values
+      final inputs = Map<String, dynamic>.from(widget.calculationResult['inputs'] as Map<String, dynamic>);
+      final outputs = widget.calculationResult['outputs'] as Map<String, dynamic>;
+      final tile = widget.calculationResult['tile'] as Map<String, dynamic>;
+      
+      // Transform the inputs to include labels
+      if (widget.isVertical) {
+        final rafterHeights = inputs['rafterHeights'] as List<double>;
+        final labeledHeights = rafterHeights.asMap().entries.map((entry) {
+          return {
+            'label': _labelControllers[entry.key].text,
+            'value': entry.value,
+          };
+        }).toList();
+        inputs['rafterHeights'] = labeledHeights;
+      } else {
+        final widths = inputs['widths'] as List<double>;
+        final labeledWidths = widths.asMap().entries.map((entry) {
+          return {
+            'label': _labelControllers[entry.key].text,
+            'value': entry.value,
+          };
+        }).toList();
+        inputs['widths'] = labeledWidths;
+      }
+      
+      // Create the saved result object
+      final result = SavedResult(
+        id: const Uuid().v4(),
+        type: widget.isVertical ? CalculationType.vertical : CalculationType.horizontal,
+        timestamp: DateTime.now(),
+        projectName: _projectNameController.text,
+        tile: tile,
+        inputs: inputs,
+        outputs: outputs,
+        userId: user.uid,
+      );
+      
+      // Save the result
+      final success = await ref.read(resultsServiceProvider).saveResult(result);
+      
+      if (success) {
+        if (mounted) {
+          Navigator.of(context).pop(true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Result saved successfully')),
+          );
+        }
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to save result';
+          _isSaving = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error: ${e.toString()}';
+        _isSaving = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Save Calculation',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              if (_errorMessage != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    _errorMessage!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onErrorContainer,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              
+              TextFormField(
+                controller: _projectNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Project Name *',
+                  hintText: 'Enter a name for this calculation',
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a project name';
+                  }
+                  return null;
+                },
+              ),
+              
+              const SizedBox(height: 24),
+              
+              Text(
+                'Rename Inputs',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              
+              ...List.generate(_labelControllers.length, (index) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: TextFormField(
+                    controller: _labelControllers[index],
+                    decoration: InputDecoration(
+                      labelText: widget.isVertical 
+                        ? 'Rafter ${index + 1} Label' 
+                        : 'Width ${index + 1} Label',
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a label';
+                      }
+                      return null;
+                    },
+                  ),
+                );
+              }),
+              
+              const SizedBox(height: 24),
+              
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    onPressed: _isSaving ? null : _saveResult,
+                    child: _isSaving 
+                      ? const SizedBox(
+                          width: 20, 
+                          height: 20, 
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text('Save'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

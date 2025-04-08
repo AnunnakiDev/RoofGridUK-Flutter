@@ -1,0 +1,144 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:roofgrid_uk/app/auth/models/user_model.dart';
+import 'package:roofgrid_uk/app/results/models/saved_result.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+class ResultsService {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
+  // Save a calculation result
+  Future<bool> saveResult(SavedResult result) async {
+    try {
+      // First save to local storage
+      await _saveResultLocally(result);
+      
+      // Then try to save to Firestore if online
+      final connectivityResult = await (Connectivity().checkConnectivity());
+      if (connectivityResult != ConnectivityResult.none || kIsWeb) {
+        await _firestore
+            .collection('users')
+            .doc(result.userId)
+            .collection('savedResults')
+            .doc(result.id)
+            .set(result.toFirestore());
+      }
+      
+      return true;
+    } catch (e) {
+      print('Error saving result: $e');
+      return false;
+    }
+  }
+  
+  // Get saved results for a user
+  Stream<List<SavedResult>> getSavedResults(String userId) {
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('savedResults')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => SavedResult.fromFirestore(doc))
+            .toList());
+  }
+  
+  // Delete a saved result
+  Future<bool> deleteResult(String userId, String resultId) async {
+    try {
+      // Delete from local storage
+      await _deleteResultLocally(resultId);
+      
+      // Delete from Firestore
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('savedResults')
+          .doc(resultId)
+          .delete();
+      
+      return true;
+    } catch (e) {
+      print('Error deleting result: $e');
+      return false;
+    }
+  }
+  
+  // Update an existing result
+  Future<bool> updateResult(SavedResult result) async {
+    try {
+      // Update locally
+      await _saveResultLocally(result);
+      
+      // Update in Firestore
+      await _firestore
+          .collection('users')
+          .doc(result.userId)
+          .collection('savedResults')
+          .doc(result.id)
+          .update(result.toFirestore());
+      
+      return true;
+    } catch (e) {
+      print('Error updating result: $e');
+      return false;
+    }
+  }
+  
+  // Search results by project name
+  Future<List<SavedResult>> searchResults(String userId, String query) async {
+    try {
+      // This is a simple implementation. For more advanced search, consider using Algolia or a similar service
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('savedResults')
+          .orderBy('projectName')
+          .startAt([query])
+          .endAt([query + '\uf8ff'])
+          .get();
+      
+      return snapshot.docs
+          .map((doc) => SavedResult.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      print('Error searching results: $e');
+      return [];
+    }
+  }
+  
+  // Local storage methods
+  Future<void> _saveResultLocally(SavedResult result) async {
+    if (!kIsWeb) {
+      final box = await Hive.openBox<Map>('savedResults');
+      await box.put(result.id, result.toFirestore());
+    }
+  }
+  
+  Future<void> _deleteResultLocally(String resultId) async {
+    if (!kIsWeb) {
+      final box = await Hive.openBox<Map>('savedResults');
+      await box.delete(resultId);
+    }
+  }
+  
+  // Sync local data with Firestore when going online
+  Future<void> syncLocalResults(String userId) async {
+    if (!kIsWeb) {
+      final box = await Hive.openBox<Map>('savedResults');
+      for (final key in box.keys) {
+        final resultData = box.get(key);
+        if (resultData != null && resultData['userId'] == userId) {
+          await _firestore
+              .collection('users')
+              .doc(userId)
+              .collection('savedResults')
+              .doc(key.toString())
+              .set(resultData);
+        }
+      }
+    }
+  }
+}
