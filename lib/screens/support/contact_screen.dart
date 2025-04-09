@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:roofgrid_uk/widgets/main_drawer.dart';
 
 class ContactScreen extends StatefulWidget {
   const ContactScreen({super.key});
@@ -61,6 +62,7 @@ class _ContactScreenState extends State<ContactScreen> {
       appBar: AppBar(
         title: const Text('Contact Support'),
       ),
+      drawer: const MainDrawer(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
