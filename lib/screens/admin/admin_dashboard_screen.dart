@@ -1,9 +1,10 @@
+// lib/screens/admin/admin_dashboard_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:roofgrid_uk/app/auth/providers/auth_provider.dart';
-import 'package:roofgrid_uk/widgets/main_drawer.dart';
-import 'package:roofgrid_uk/widgets/bottom_nav_bar.dart';
+import 'package:roofgriduk/providers/auth_provider.dart';
+import 'package:roofgriduk/widgets/main_drawer.dart';
+import 'package:roofgriduk/widgets/bottom_nav_bar.dart';
 
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -28,7 +29,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await ref.read(authServiceProvider).signOut();
+              await ref.read(authProvider.notifier).signOut();
               // Router will handle navigation
             },
             tooltip: 'Sign out',
@@ -57,21 +58,25 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             label: 'Dashboard',
             icon: Icons.dashboard_outlined,
             activeIcon: Icons.dashboard,
+            tooltip: 'Admin Dashboard',
           ),
           BottomNavItem(
             label: 'Users',
             icon: Icons.people_outlined,
             activeIcon: Icons.people,
+            tooltip: 'Manage Users',
           ),
           BottomNavItem(
             label: 'Tiles',
             icon: Icons.grid_4x4_outlined,
             activeIcon: Icons.grid_4x4,
+            tooltip: 'Manage Tiles',
           ),
           BottomNavItem(
             label: 'Settings',
             icon: Icons.settings_outlined,
             activeIcon: Icons.settings,
+            tooltip: 'Admin Settings',
           ),
         ],
       ),

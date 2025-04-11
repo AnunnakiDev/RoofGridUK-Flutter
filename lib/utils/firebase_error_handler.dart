@@ -23,21 +23,7 @@ class FirebaseErrorHandler {
       case 'operation-not-allowed':
         return 'This operation is not allowed. Contact support.';
       default:
-        return error.message ?? 'An error occurred. Please try again.';
-    }
-  }
-
-  static String getFirestoreErrorMessage(String errorCode) {
-    if (errorCode.contains('permission-denied')) {
-      return 'You do not have permission to perform this action.';
-    } else if (errorCode.contains('unavailable')) {
-      return 'The service is currently unavailable. Please try again later.';
-    } else if (errorCode.contains('not-found')) {
-      return 'The requested document was not found.';
-    } else if (errorCode.contains('already-exists')) {
-      return 'The document already exists.';
-    } else {
-      return 'An error occurred. Please try again.';
+        return 'An authentication error occurred. Please try again.';
     }
   }
 }

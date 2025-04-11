@@ -1,16 +1,19 @@
+// lib/app/results/result_detail_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:roofgrid_uk/app/results/models/saved_result.dart';
-import 'package:roofgrid_uk/app/results/providers/results_provider.dart';
-import 'package:roofgrid_uk/screens/results/result_visualization.dart';
+import 'package:roofgriduk/app/results/models/saved_result.dart';
+import 'package:roofgriduk/app/results/providers/results_provider.dart';
+import 'package:roofgriduk/app/results/services/results_service.dart';
+import 'package:roofgriduk/widgets/main_drawer.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:screenshot/screenshot.dart';
 
 class ResultDetailScreen extends ConsumerStatefulWidget {
-  const ResultDetailScreen({Key? key}) : super(key: key);
+  const ResultDetailScreen({super.key});
 
   @override
   ConsumerState<ResultDetailScreen> createState() => _ResultDetailScreenState();
@@ -27,6 +30,7 @@ class _ResultDetailScreenState extends ConsumerState<ResultDetailScreen> {
     if (result == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Result Details')),
+        drawer: const MainDrawer(),
         body: const Center(child: Text('No result selected')),
       );
     }
@@ -54,6 +58,7 @@ class _ResultDetailScreenState extends ConsumerState<ResultDetailScreen> {
           ),
         ],
       ),
+      drawer: const MainDrawer(),
       body: Screenshot(
         controller: _screenshotController,
         child: SingleChildScrollView(
@@ -66,9 +71,12 @@ class _ResultDetailScreenState extends ConsumerState<ResultDetailScreen> {
                     const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: isVertical
-                        ? [Colors.blue.shade700, Colors.blue.shade500]
-                        : [Colors.teal.shade700, Colors.teal.shade500],
+                    colors: [
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.primaryContainer,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
                 ),
                 child: Column(
@@ -78,19 +86,17 @@ class _ResultDetailScreenState extends ConsumerState<ResultDetailScreen> {
                       isVertical
                           ? 'Vertical Calculation'
                           : 'Horizontal Calculation',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Created on $formattedDate',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.white70,
+                          ),
                     ),
                   ],
                 ),
@@ -154,9 +160,10 @@ class _ResultDetailScreenState extends ConsumerState<ResultDetailScreen> {
   }
 
   void _navigateToEditScreen(BuildContext context, SavedResult result) {
-    // TODO: Implement edit functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Edit functionality coming soon!')),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => EditResultSheet(result: result),
     );
   }
 
@@ -172,7 +179,7 @@ class _ResultDetailScreenState extends ConsumerState<ResultDetailScreen> {
               leading: const Icon(Icons.picture_as_pdf),
               title: const Text('Export as PDF'),
               onTap: () {
-                Navigator.pop(context);
+                context.pop();
                 _exportAsPdf(result);
               },
             ),
@@ -180,7 +187,7 @@ class _ResultDetailScreenState extends ConsumerState<ResultDetailScreen> {
               leading: const Icon(Icons.image),
               title: const Text('Export as Image'),
               onTap: () {
-                Navigator.pop(context);
+                context.pop();
                 _exportAsImage();
               },
             ),
@@ -188,7 +195,7 @@ class _ResultDetailScreenState extends ConsumerState<ResultDetailScreen> {
               leading: const Icon(Icons.email),
               title: const Text('Send via Email'),
               onTap: () {
-                Navigator.pop(context);
+                context.pop();
                 _shareViaEmail(result);
               },
             ),
@@ -206,9 +213,11 @@ class _ResultDetailScreenState extends ConsumerState<ResultDetailScreen> {
     try {
       final image = await _screenshotController.capture();
       if (image == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to capture screenshot')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to capture screenshot')),
+          );
+        }
         return;
       }
 
@@ -223,13 +232,20 @@ class _ResultDetailScreenState extends ConsumerState<ResultDetailScreen> {
         text: 'RoofGrid UK Calculation Result',
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error exporting image: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error exporting image: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
     } finally {
-      setState(() {
-        _isExporting = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isExporting = false;
+        });
+      }
     }
   }
 
@@ -248,23 +264,31 @@ class _ResultDetailScreenState extends ConsumerState<ResultDetailScreen> {
           text: 'RoofGrid UK Calculation Result',
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('PDF export feature coming soon!')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('PDF export feature coming soon!')),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error exporting PDF: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error exporting PDF: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
     } finally {
-      setState(() {
-        _isExporting = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isExporting = false;
+        });
+      }
     }
   }
 
   Future<void> _shareViaEmail(SavedResult result) async {
-    // First export as image
     setState(() {
       _isExporting = true;
     });
@@ -272,9 +296,11 @@ class _ResultDetailScreenState extends ConsumerState<ResultDetailScreen> {
     try {
       final image = await _screenshotController.capture();
       if (image == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to capture screenshot')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to capture screenshot')),
+          );
+        }
         return;
       }
 
@@ -295,7 +321,7 @@ Project: ${result.projectName}
 Date: $formattedDate
 Type: ${isVertical ? 'Vertical' : 'Horizontal'} Calculation
 
-Tile: ${result.tile['name']}
+Tile: ${result.tile['name'] ?? 'N/A'}
 ''';
 
       await Share.share(
@@ -303,13 +329,20 @@ Tile: ${result.tile['name']}
         subject: 'RoofGrid UK - ${result.projectName}',
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error sharing: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sharing: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
     } finally {
-      setState(() {
-        _isExporting = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isExporting = false;
+        });
+      }
     }
   }
 
@@ -510,18 +543,19 @@ Tile: ${result.tile['name']}
           autofocus: true,
           decoration: const InputDecoration(
             labelText: 'Label',
+            border: OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => context.pop(),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
               if (controller.text.trim().isNotEmpty) {
                 onSave(controller.text.trim());
-                Navigator.pop(context);
+                context.pop();
               }
             },
             child: const Text('Save'),
@@ -550,7 +584,10 @@ Tile: ${result.tile['name']}
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     }
@@ -641,18 +678,24 @@ Tile: ${result.tile['name']}
       outputRows.add(Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.amber.shade50,
+          color: Theme.of(context).colorScheme.errorContainer,
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: Colors.amber),
+          border: Border.all(color: Theme.of(context).colorScheme.error),
         ),
         child: Row(
           children: [
-            const Icon(Icons.warning_amber, color: Colors.amber, size: 20),
+            Icon(
+              Icons.warning_amber,
+              color: Theme.of(context).colorScheme.error,
+              size: 20,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 outputs['warning'],
-                style: TextStyle(color: Colors.amber.shade900),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onErrorContainer,
+                ),
               ),
             ),
           ],
@@ -664,6 +707,123 @@ Tile: ${result.tile['name']}
       context,
       title: 'Calculation Results',
       content: Column(children: outputRows),
+    );
+  }
+}
+
+class EditResultSheet extends ConsumerStatefulWidget {
+  final SavedResult result;
+
+  const EditResultSheet({super.key, required this.result});
+
+  @override
+  ConsumerState<EditResultSheet> createState() => _EditResultSheetState();
+}
+
+class _EditResultSheetState extends ConsumerState<EditResultSheet> {
+  final TextEditingController _projectNameController = TextEditingController();
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _projectNameController.text = widget.result.projectName;
+  }
+
+  @override
+  void dispose() {
+    _projectNameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveChanges() async {
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final resultsService = ref.read(resultsServiceProvider);
+      await resultsService.updateProjectName(
+        widget.result,
+        _projectNameController.text.trim(),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Project name updated')),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: 16,
+        right: 16,
+        top: 16,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Edit Result',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _projectNameController,
+            decoration: const InputDecoration(
+              labelText: 'Project Name',
+              border: OutlineInputBorder(),
+            ),
+            enabled: !_isSaving,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: _isSaving ? null : () => context.pop(),
+                child: const Text('Cancel'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed:
+                    _isSaving || _projectNameController.text.trim().isEmpty
+                        ? null
+                        : _saveChanges,
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Save'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
     );
   }
 }

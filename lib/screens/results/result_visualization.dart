@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:roofgrid_uk/app/results/models/saved_result.dart';
+import 'package:roofgriduk/app/results/models/saved_result.dart';
 
 class ResultVisualization extends StatefulWidget {
   final SavedResult result;
 
-  const ResultVisualization({Key? key, required this.result}) : super(key: key);
+  const ResultVisualization({super.key, required this.result});
 
   @override
   State<ResultVisualization> createState() => _ResultVisualizationState();

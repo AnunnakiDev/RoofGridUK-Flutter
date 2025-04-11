@@ -12,12 +12,12 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  
+
   runApp(const AdminSetupApp());
 }
 
 class AdminSetupApp extends StatelessWidget {
-  const AdminSetupApp({Key? key}) : super(key: key);
+  const AdminSetupApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +29,8 @@ class AdminSetupApp extends StatelessWidget {
 }
 
 class AdminSetupScreen extends StatefulWidget {
+  const AdminSetupScreen({super.key});
+
   @override
   _AdminSetupScreenState createState() => _AdminSetupScreenState();
 }
@@ -36,17 +38,18 @@ class AdminSetupScreen extends StatefulWidget {
 class _AdminSetupScreenState extends State<AdminSetupScreen> {
   String _status = 'Ready to create admin account';
   bool _isLoading = false;
-  
+
   Future<void> _createAdminAccount() async {
     setState(() {
       _isLoading = true;
       _status = 'Creating admin account...';
     });
-    
+
     try {
       // First check if user already exists
       try {
-        final methods = await FirebaseAuth.instance.fetchSignInMethodsForEmail('support@roofgrid.uk');
+        final methods = await FirebaseAuth.instance
+            .fetchSignInMethodsForEmail('support@roofgrid.uk');
         if (methods.isNotEmpty) {
           setState(() {
             _status = 'Admin account already exists. You can login with it.';
@@ -57,17 +60,18 @@ class _AdminSetupScreenState extends State<AdminSetupScreen> {
       } catch (e) {
         print('Error checking if email exists: $e');
       }
-      
+
       // Create the user
-      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      final credential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: 'support@roofgrid.uk',
         password: 'Password123!',
       );
-      
+
       // Set user data in Firestore
       if (credential.user != null) {
         final now = DateTime.now();
-        
+
         await FirebaseFirestore.instance
             .collection('users')
             .doc(credential.user!.uid)
@@ -80,7 +84,7 @@ class _AdminSetupScreenState extends State<AdminSetupScreen> {
           'createdAt': now,
           'lastLoginAt': now,
         });
-        
+
         setState(() {
           _status = 'Admin account created successfully! 🎉\n\n'
               'Email: support@roofgrid.uk\n'
@@ -103,7 +107,7 @@ class _AdminSetupScreenState extends State<AdminSetupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Admin Account Setup'),
+        title: const Text('Admin Account Setup'),
       ),
       body: Center(
         child: Padding(
@@ -111,26 +115,27 @@ class _AdminSetupScreenState extends State<AdminSetupScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.admin_panel_settings, size: 80, color: Colors.blue),
-              SizedBox(height: 24),
-              Text(
+              const Icon(Icons.admin_panel_settings,
+                  size: 80, color: Colors.blue),
+              const SizedBox(height: 24),
+              const Text(
                 'RoofGrid UK Admin Setup',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Text(
                 _status,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16),
+                style: const TextStyle(fontSize: 16),
               ),
-              SizedBox(height: 40),
+              const SizedBox(height: 40),
               if (_isLoading)
-                CircularProgressIndicator()
+                const CircularProgressIndicator()
               else
                 ElevatedButton(
                   onPressed: _createAdminAccount,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
+                  child: const Padding(
+                    padding: EdgeInsets.all(12.0),
                     child: Text('Create Admin Account'),
                   ),
                 ),

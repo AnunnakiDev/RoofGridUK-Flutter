@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:roofgrid_uk/app/auth/models/user_model.dart';
-import 'package:roofgrid_uk/app/auth/providers/auth_provider.dart';
-import 'package:roofgrid_uk/app/tiles/models/tile_model.dart';
-import 'package:roofgrid_uk/app/tiles/services/tile_service.dart';
+import 'package:roofgriduk/app/auth/models/user_model.dart';
+import 'package:roofgriduk/app/auth/providers/auth_provider.dart';
+import 'package:roofgriduk/app/tiles/models/tile_model.dart';
+import 'package:roofgriduk/app/tiles/services/tile_service.dart';
 
 /// Screen for managing tiles - Pro users can view all tiles from the database,
 /// while free users can only create and manage their own custom tiles
 class TileManagementScreen extends ConsumerStatefulWidget {
-  const TileManagementScreen({Key? key}) : super(key: key);
+  const TileManagementScreen({super.key});
 
   @override
   ConsumerState<TileManagementScreen> createState() =>
@@ -315,8 +315,9 @@ class _TileManagementScreenState extends ConsumerState<TileManagementScreen> {
                       keyboardType: TextInputType.number,
                       validator: (value) {
                         if (value?.isEmpty ?? true) return 'Height is required';
-                        if (double.tryParse(value!) == null)
+                        if (double.tryParse(value!) == null) {
                           return 'Invalid number';
+                        }
                         return null;
                       },
                     ),
@@ -327,8 +328,9 @@ class _TileManagementScreenState extends ConsumerState<TileManagementScreen> {
                       keyboardType: TextInputType.number,
                       validator: (value) {
                         if (value?.isEmpty ?? true) return 'Width is required';
-                        if (double.tryParse(value!) == null)
+                        if (double.tryParse(value!) == null) {
                           return 'Invalid number';
+                        }
                         return null;
                       },
                     ),
@@ -338,10 +340,12 @@ class _TileManagementScreenState extends ConsumerState<TileManagementScreen> {
                           const InputDecoration(labelText: 'Min Gauge (mm) *'),
                       keyboardType: TextInputType.number,
                       validator: (value) {
-                        if (value?.isEmpty ?? true)
+                        if (value?.isEmpty ?? true) {
                           return 'Min gauge is required';
-                        if (double.tryParse(value!) == null)
+                        }
+                        if (double.tryParse(value!) == null) {
                           return 'Invalid number';
+                        }
                         return null;
                       },
                     ),
@@ -351,10 +355,12 @@ class _TileManagementScreenState extends ConsumerState<TileManagementScreen> {
                           const InputDecoration(labelText: 'Max Gauge (mm) *'),
                       keyboardType: TextInputType.number,
                       validator: (value) {
-                        if (value?.isEmpty ?? true)
+                        if (value?.isEmpty ?? true) {
                           return 'Max gauge is required';
-                        if (double.tryParse(value!) == null)
+                        }
+                        if (double.tryParse(value!) == null) {
                           return 'Invalid number';
+                        }
                         return null;
                       },
                     ),
@@ -364,10 +370,12 @@ class _TileManagementScreenState extends ConsumerState<TileManagementScreen> {
                           labelText: 'Min Spacing (mm) *'),
                       keyboardType: TextInputType.number,
                       validator: (value) {
-                        if (value?.isEmpty ?? true)
+                        if (value?.isEmpty ?? true) {
                           return 'Min spacing is required';
-                        if (double.tryParse(value!) == null)
+                        }
+                        if (double.tryParse(value!) == null) {
                           return 'Invalid number';
+                        }
                         return null;
                       },
                     ),
@@ -377,10 +385,12 @@ class _TileManagementScreenState extends ConsumerState<TileManagementScreen> {
                           labelText: 'Max Spacing (mm) *'),
                       keyboardType: TextInputType.number,
                       validator: (value) {
-                        if (value?.isEmpty ?? true)
+                        if (value?.isEmpty ?? true) {
                           return 'Max spacing is required';
-                        if (double.tryParse(value!) == null)
+                        }
+                        if (double.tryParse(value!) == null) {
                           return 'Invalid number';
+                        }
                         return null;
                       },
                     ),
@@ -399,8 +409,9 @@ class _TileManagementScreenState extends ConsumerState<TileManagementScreen> {
                         keyboardType: TextInputType.number,
                         validator: (value) {
                           if (value != null && value.isNotEmpty) {
-                            if (double.tryParse(value) == null)
+                            if (double.tryParse(value) == null) {
                               return 'Invalid number';
+                            }
                           }
                           return null;
                         },

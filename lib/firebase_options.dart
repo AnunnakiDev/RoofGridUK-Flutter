@@ -34,43 +34,44 @@ class DefaultFirebaseOptions {
     }
   }
 
-  // TODO: Replace these placeholder values with actual Firebase configuration values
-  // From your Firebase project in the Firebase console
+  // Replace placeholder values with actual Firebase configuration values
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'YOUR_API_KEY',
-    appId: 'YOUR_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    authDomain: 'YOUR_AUTH_DOMAIN',
-    storageBucket: 'YOUR_STORAGE_BUCKET',
-    measurementId: 'YOUR_MEASUREMENT_ID',
+    apiKey: "AIzaSyBNG0Vkaid36qLuMzbNtLPT4j3iwGvLMUo",
+    appId: "1:796676497165:web:9b33d87571a7a3cd4b9a44",
+    messagingSenderId: "796676497165",
+    projectId: "roofgriduk",
+    authDomain: "roofgriduk.firebaseapp.com",
+    storageBucket: "roofgriduk.firebasestorage.app",
+    measurementId: "G-NSLE7J6VG0",
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'YOUR_API_KEY',
-    appId: 'YOUR_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_STORAGE_BUCKET',
+    apiKey: "AIzaSyBNG0Vkaid36qLuMzbNtLPT4j3iwGvLMUo",
+    appId: "1:796676497165:web:9b33d87571a7a3cd4b9a44",
+    messagingSenderId: "796676497165",
+    projectId: "roofgriduk",
+    storageBucket: "roofgriduk.firebasestorage.app",
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'YOUR_API_KEY',
-    appId: 'YOUR_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_STORAGE_BUCKET',
-    iosClientId: 'YOUR_IOS_CLIENT_ID',
-    iosBundleId: 'YOUR_IOS_BUNDLE_ID',
+    apiKey: "AIzaSyBNG0Vkaid36qLuMzbNtLPT4j3iwGvLMUo",
+    appId: "1:796676497165:web:9b33d87571a7a3cd4b9a44",
+    messagingSenderId: "796676497165",
+    projectId: "roofgriduk",
+    storageBucket: "roofgriduk.firebasestorage.app",
+    iosClientId:
+        "YOUR_IOS_CLIENT_ID", // You'll need to replace this if you use iOS
+    iosBundleId: "com.roofgriduk.app",
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'YOUR_API_KEY',
-    appId: 'YOUR_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_STORAGE_BUCKET',
-    iosClientId: 'YOUR_IOS_CLIENT_ID',
-    iosBundleId: 'YOUR_IOS_BUNDLE_ID',
+    apiKey: "AIzaSyBNG0Vkaid36qLuMzbNtLPT4j3iwGvLMUo",
+    appId: "1:796676497165:web:9b33d87571a7a3cd4b9a44",
+    messagingSenderId: "796676497165",
+    projectId: "roofgriduk",
+    storageBucket: "roofgriduk.firebasestorage.app",
+    iosClientId:
+        "YOUR_IOS_CLIENT_ID", // You'll need to replace this if you use macOS
+    iosBundleId: "com.roofgriduk.app",
   );
 }

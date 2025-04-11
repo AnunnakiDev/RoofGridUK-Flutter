@@ -1,5 +1,6 @@
+// lib/screens/support/contact_screen.dart
 import 'package:flutter/material.dart';
-import 'package:roofgrid_uk/widgets/main_drawer.dart';
+import 'package:roofgriduk/widgets/main_drawer.dart';
 
 class ContactScreen extends StatefulWidget {
   const ContactScreen({super.key});
@@ -81,8 +82,6 @@ class _ContactScreenState extends State<ContactScreen> {
               style: Theme.of(context).textTheme.bodyLarge,
             ),
             const SizedBox(height: 24),
-
-            // Contact methods
             _buildContactMethod(
               context,
               icon: Icons.email_outlined,
@@ -101,10 +100,7 @@ class _ContactScreenState extends State<ContactScreen> {
               title: 'Support Hours',
               value: 'Monday - Friday, 9:00 AM - 5:00 PM',
             ),
-
             const Divider(height: 48),
-
-            // Contact form
             Text(
               'Send us a message',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(

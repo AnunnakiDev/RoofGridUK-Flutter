@@ -1,5 +1,6 @@
+// lib/screens/support/faq_screen.dart
 import 'package:flutter/material.dart';
-import 'package:roofgrid_uk/widgets/main_drawer.dart';
+import 'package:roofgriduk/widgets/main_drawer.dart';
 
 class FaqScreen extends StatelessWidget {
   const FaqScreen({super.key});

@@ -1,13 +1,18 @@
+// lib/screens/splash/splash_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:roofgriduk/providers/auth_provider.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends ConsumerState<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -24,12 +29,13 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     );
     _controller.forward();
 
-    // Navigate to the appropriate screen after the animation
+    // Log splash screen view
+    FirebaseAnalytics.instance.logScreenView(screenName: 'splash_screen');
+
+    // Wait for animation to complete; router will handle navigation
     Future.delayed(const Duration(seconds: 3), () {
-      // The router will handle redirection based on auth state
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/home');
-      }
+      // Router redirect will handle navigation based on auth state
+      // No need for manual navigation
     });
   }
 
@@ -57,7 +63,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo with fade-in and scale animation
               ScaleTransition(
                 scale: _animation,
                 child: FadeTransition(
@@ -83,30 +88,27 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 ),
               ),
               const SizedBox(height: 40),
-              // App name with fade-in animation
               FadeTransition(
                 opacity: _animation,
                 child: Text(
                   'RoofGrid-UK',
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
               ),
               const SizedBox(height: 20),
-              // Tagline with fade-in animation
               FadeTransition(
                 opacity: _animation,
                 child: Text(
                   'Professional Roofing Calculations',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.white,
-                  ),
+                        color: Colors.white,
+                      ),
                 ),
               ),
               const SizedBox(height: 60),
-              // Loading indicator
               const CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               ),

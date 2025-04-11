@@ -1,10 +1,11 @@
-import 'package:firebase_auth/firebase_auth.dart';
+// screens/auth/forgot_password_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:roofgridk_app/providers/auth_provider.dart';
-import 'package:roofgridk_app/utils/firebase_error_handler.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:roofgriduk/providers/auth_provider.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+
+// Rest of the file remains the same
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -19,7 +20,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
   bool _isLoading = false;
   bool _resetSent = false;
-  String? _errorMessage;
 
   @override
   void dispose() {
@@ -31,59 +31,40 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
-        _errorMessage = null;
       });
-      try {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        await authProvider.resetPassword(
-          _emailController.text.trim(),
+
+      final authNotifier = ref.read(authProvider.notifier);
+      final success =
+          await authNotifier.resetPassword(_emailController.text.trim());
+
+      if (success && mounted) {
+        await FirebaseAnalytics.instance.logEvent(name: 'password_reset_sent');
+        setState(() {
+          _resetSent = true;
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password reset link sent!')),
         );
-
-        if (mounted) {
-          setState(() {
-            _resetSent = true;
-            _isLoading = false;
-          });
-        }
-      } on FirebaseAuthException catch (e) {
-        if (mounted) {
-          setState(() {
-            _errorMessage = FirebaseErrorHandler.getAuthErrorMessage(e);
-            _isLoading = false;
-          });
-        }
-      } catch (e) {
-        if (mounted) {
-          setState(() {
-            _errorMessage = 'An unexpected error occurred. Please try again.';
-            _isLoading = false;
-          });
-        }
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
       }
-    }
-  }
-
-  String _getFirebaseErrorMessage(String errorCode) {
-    if (errorCode.contains('user-not-found')) {
-      return 'No account found with this email address.';
-    } else if (errorCode.contains('invalid-email')) {
-      return 'Please enter a valid email address.';
-    } else if (errorCode.contains('network-request-failed')) {
-      return 'Network error. Please check your internet connection.';
-    } else {
-      return 'An error occurred. Please try again.';
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          onPressed: () => context.go('/auth/login'),
         ),
       ),
       body: SafeArea(
@@ -96,37 +77,30 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Icon
                   Icon(
                     _resetSent ? Icons.check_circle_outline : Icons.lock_reset,
                     size: 80,
                     color: Theme.of(context).colorScheme.primary,
-                  ).animate().fadeIn().scale(),
+                  ),
                   const SizedBox(height: 24),
-
-                  // Title
                   Text(
                     _resetSent ? 'Reset Link Sent' : 'Forgot Password',
                     style: Theme.of(context).textTheme.headlineMedium!.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                     textAlign: TextAlign.center,
-                  ).animate().fadeIn(delay: 200.ms),
+                  ),
                   const SizedBox(height: 16),
-
-                  // Instructions
                   Text(
                     _resetSent
-                        ? 'We\'ve sent a password reset link to ${_emailController.text}. Please check your inbox and follow the instructions to reset your password.'
-                        : 'Enter your email address below and we\'ll send you a link to reset your password.',
+                        ? 'We\'ve sent a password reset link to ${_emailController.text}. Please check your inbox.'
+                        : 'Enter your email address below to receive a password reset link.',
                     style: Theme.of(context).textTheme.bodyLarge,
                     textAlign: TextAlign.center,
-                  ).animate().fadeIn(delay: 300.ms),
+                  ),
                   const SizedBox(height: 32),
-
                   if (!_resetSent) ...[
-                    // Error message
-                    if (_errorMessage != null)
+                    if (authState.error != null)
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -134,16 +108,14 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          _errorMessage!,
+                          authState.error!,
                           style: TextStyle(
                             color:
                                 Theme.of(context).colorScheme.onErrorContainer,
                           ),
                         ),
-                      ).animate().shake(),
-                    if (_errorMessage != null) const SizedBox(height: 16),
-
-                    // Email Field
+                      ),
+                    if (authState.error != null) const SizedBox(height: 16),
                     TextFormField(
                       controller: _emailController,
                       decoration: const InputDecoration(
@@ -163,18 +135,17 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                         }
                         return null;
                       },
-                    ).animate().fadeIn(delay: 400.ms),
+                    ),
                     const SizedBox(height: 24),
-
-                    // Reset Button
                     ElevatedButton(
-                      onPressed: _isLoading ? null : _resetPassword,
+                      onPressed: _isLoading || authState.isLoading
+                          ? null
+                          : _resetPassword,
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Colors.white,
                       ),
-                      child: _isLoading
+                      child: _isLoading || authState.isLoading
                           ? const SizedBox(
                               width: 24,
                               height: 24,
@@ -184,18 +155,16 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                               ),
                             )
                           : const Text('Send Reset Link'),
-                    ).animate().fadeIn(delay: 500.ms),
+                    ),
                   ] else ...[
-                    // Back to Login Button when reset sent
                     ElevatedButton(
                       onPressed: () => context.go('/auth/login'),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Colors.white,
                       ),
                       child: const Text('Back to Login'),
-                    ).animate().fadeIn(delay: 500.ms),
+                    ),
                   ],
                 ],
               ),

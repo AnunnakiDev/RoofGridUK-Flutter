@@ -1,5 +1,6 @@
+// lib/screens/support/legal_screen.dart
 import 'package:flutter/material.dart';
-import 'package:roofgrid_uk/widgets/main_drawer.dart';
+import 'package:roofgriduk/widgets/main_drawer.dart';
 
 class LegalScreen extends StatelessWidget {
   const LegalScreen({super.key});

@@ -1,14 +1,13 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:roofgrid_uk/app/auth/models/user_model.dart';
-import 'package:roofgrid_uk/app/auth/providers/auth_provider.dart';
-import 'package:roofgrid_uk/app/auth/services/permissions_service.dart';
-import 'package:roofgrid_uk/app/calculator/providers/calculator_provider.dart';
-import 'package:roofgrid_uk/app/tiles/models/tile_model.dart';
-import 'package:roofgrid_uk/app/tiles/services/tile_service.dart';
+import 'package:roofgriduk/models/user_model.dart';
+import 'package:roofgriduk/providers/auth_provider.dart';
+import 'package:roofgriduk/models/tile_model.dart';
+import 'package:roofgriduk/app/calculator/providers/calculator_provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:roofgridk_app/screens/auth/subscription_screen.dart';
+import 'package:roofgriduk/screens/subscription_screen.dart';
+import 'package:roofgriduk/services/permissions_service.dart';
+import 'package:flutter/material.dart' as material;
 
 class CalculatorScreen extends ConsumerStatefulWidget {
   const CalculatorScreen({super.key});
@@ -18,14 +17,14 @@ class CalculatorScreen extends ConsumerStatefulWidget {
 }
 
 class _CalculatorScreenState extends ConsumerState<CalculatorScreen>
-    with TickerProviderStateMixin {
-  late TabController _tabController;
+    with material.TickerProviderStateMixin {
+  late material.TabController _tabController;
   bool _isVertical = true;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = material.TabController(length: 2, vsync: this);
     _tabController.addListener(_handleTabChange);
   }
 
@@ -45,30 +44,30 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
+  material.Widget build(material.BuildContext context) {
     final userAsync = ref.watch(currentUserProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Roofing Calculator'),
-        bottom: TabBar(
+    return material.Scaffold(
+      appBar: material.AppBar(
+        title: const material.Text('Roofing Calculator'),
+        bottom: material.TabBar(
           controller: _tabController,
           tabs: const [
-            Tab(
-              icon: Icon(Icons.straighten),
+            material.Tab(
+              icon: material.Icon(material.Icons.straighten),
               text: 'Vertical',
-              iconMargin: EdgeInsets.only(bottom: 4),
+              iconMargin: material.EdgeInsets.only(bottom: 4),
             ),
-            Tab(
-              icon: Icon(Icons.grid_4x4),
+            material.Tab(
+              icon: material.Icon(material.Icons.grid_4x4),
               text: 'Horizontal',
-              iconMargin: EdgeInsets.only(bottom: 4),
+              iconMargin: material.EdgeInsets.only(bottom: 4),
             ),
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.info_outline),
+          material.IconButton(
+            icon: const material.Icon(material.Icons.info_outline),
             onPressed: () {
               _showCalculatorInfo(context);
             },
@@ -77,100 +76,95 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen>
       ),
       body: userAsync.when(
         data: (user) => _buildCalculatorContent(context, user),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) => Center(
-          child: Text(
+        loading: () =>
+            const material.Center(child: material.CircularProgressIndicator()),
+        error: (error, stackTrace) => material.Center(
+          child: material.Text(
             'Error loading user data: $error',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
+            style: material.Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: material.Theme.of(context).colorScheme.error,
                 ),
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: material.FloatingActionButton.extended(
         onPressed: () {
-          // Execute calculation
           if (_isVertical) {
             _calculateVertical();
           } else {
             _calculateHorizontal();
           }
         },
-        label: const Text('Calculate'),
-        icon: const Icon(Icons.calculate),
+        label: const material.Text('Calculate'),
+        icon: const material.Icon(material.Icons.calculate),
       ),
     );
   }
 
-  Widget _buildCalculatorContent(BuildContext context, UserModel? user) {
+  material.Widget _buildCalculatorContent(
+      material.BuildContext context, UserModel? user) {
     if (user == null) {
-      return const Center(
-        child: Text('User data not found. Please sign in again.'),
+      return const material.Center(
+        child: material.Text('User data not found. Please sign in again.'),
       );
     }
 
-    // Use PermissionsService to check permissions
-    final canUseMultipleRafters =
-        PermissionsService.getMaxAllowedRafters(user) > 1;
-    final canUseAdvancedOptions =
-        PermissionsService.canUseAdvancedOptions(user);
-    final canExport = PermissionsService.canExportResults(user);
+    // Use UserModel directly for permissions (stub PermissionsService)
+    final canUseMultipleRafters = user.isPro;
+    final canUseAdvancedOptions = user.isPro;
+    final canExport = user.isPro;
+    final canAccessDatabase = user.isPro;
 
-    // Show trial expiration warning if applicable
-    if (PermissionsService.isTrialAboutToExpire(user)) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (user.isTrialAboutToExpire) {
+      material.WidgetsBinding.instance.addPostFrameCallback((_) {
         _showTrialExpirationWarning(context, user);
       });
     }
 
-    return TabBarView(
+    return material.TabBarView(
       controller: _tabController,
       children: [
-        // Vertical Calculator (Batten Gauge)
         VerticalCalculatorTab(
           user: user,
           canUseMultipleRafters: canUseMultipleRafters,
           canUseAdvancedOptions: canUseAdvancedOptions,
           canExport: canExport,
+          canAccessDatabase: canAccessDatabase,
         ),
-
-        // Horizontal Calculator (Tile Spacing)
         HorizontalCalculatorTab(
           user: user,
           canUseMultipleWidths: canUseMultipleRafters,
           canUseAdvancedOptions: canUseAdvancedOptions,
           canExport: canExport,
+          canAccessDatabase: canAccessDatabase,
         ),
       ],
     );
   }
 
-  void _showTrialExpirationWarning(BuildContext context, UserModel user) {
-    final remainingDays = PermissionsService.getRemainingTrialDays(user);
+  void _showTrialExpirationWarning(
+      material.BuildContext context, UserModel user) {
+    final remainingDays = user.remainingTrialDays;
 
-    showDialog(
+    material.showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Pro Trial Expiring Soon'),
-        content: Text(
+      builder: (context) => material.AlertDialog(
+        title: const material.Text('Pro Trial Expiring Soon'),
+        content: material.Text(
           'Your Pro trial will expire in $remainingDays ${remainingDays == 1 ? 'day' : 'days'}. '
           'Upgrade now to keep access to all Pro features.',
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Later'),
+          material.TextButton(
+            onPressed: () => material.Navigator.of(context).pop(),
+            child: const material.Text('Later'),
           ),
-          FilledButton(
+          material.FilledButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const SubscriptionScreen(),
-                ),
-              );
+              material.Navigator.of(context).pop();
+              context.go('/subscription');
             },
-            child: const Text('Upgrade Now'),
+            child: const material.Text('Upgrade Now'),
           ),
         ],
       ),
@@ -197,58 +191,59 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen>
     }
   }
 
-  void _showCalculatorInfo(BuildContext context) {
-    showDialog(
+  void _showCalculatorInfo(material.BuildContext context) {
+    material.showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
+      builder: (context) => material.AlertDialog(
+        title: material.Text(
           _isVertical ? 'Vertical Calculator' : 'Horizontal Calculator',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const material.TextStyle(fontWeight: material.FontWeight.bold),
         ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+        content: material.SingleChildScrollView(
+          child: material.Column(
+            crossAxisAlignment: material.CrossAxisAlignment.start,
+            mainAxisSize: material.MainAxisSize.min,
             children: [
-              Text(
+              material.Text(
                 _isVertical
                     ? 'The Vertical Calculator helps determine batten gauge (spacing) based on rafter height.'
                     : 'The Horizontal Calculator helps determine tile spacing based on width measurements.',
               ),
-              const SizedBox(height: 16),
-              Text(
+              const material.SizedBox(height: 16),
+              material.Text(
                 'How to use:',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style:
+                    material.Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: material.FontWeight.bold,
+                        ),
               ),
-              const SizedBox(height: 8),
+              const material.SizedBox(height: 8),
               _isVertical
-                  ? const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  ? const material.Column(
+                      crossAxisAlignment: material.CrossAxisAlignment.start,
                       children: [
-                        Text('1. Enter your rafter height(s)'),
-                        Text('2. Select your tile type'),
-                        Text('3. Tap Calculate'),
-                        Text('4. View your batten gauge and results'),
+                        material.Text('1. Enter your rafter height(s)'),
+                        material.Text('2. Select your tile type'),
+                        material.Text('3. Tap Calculate'),
+                        material.Text('4. View your batten gauge and results'),
                       ],
                     )
-                  : const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  : const material.Column(
+                      crossAxisAlignment: material.CrossAxisAlignment.start,
                       children: [
-                        Text('1. Enter your width measurement(s)'),
-                        Text('2. Select your tile type'),
-                        Text('3. Tap Calculate'),
-                        Text('4. View your tile spacing and results'),
+                        material.Text('1. Enter your width measurement(s)'),
+                        material.Text('2. Select your tile type'),
+                        material.Text('3. Tap Calculate'),
+                        material.Text('4. View your tile spacing and results'),
                       ],
                     ),
             ],
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+          material.TextButton(
+            onPressed: () => material.Navigator.of(context).pop(),
+            child: const material.Text('Close'),
           ),
         ],
       ),
@@ -257,11 +252,19 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen>
 }
 
 class VerticalCalculatorTab extends ConsumerStatefulWidget {
-  final bool isPro;
+  final UserModel user;
+  final bool canUseMultipleRafters;
+  final bool canUseAdvancedOptions;
+  final bool canExport;
+  final bool canAccessDatabase;
 
   const VerticalCalculatorTab({
     super.key,
-    required this.isPro,
+    required this.user,
+    required this.canUseMultipleRafters,
+    required this.canUseAdvancedOptions,
+    required this.canExport,
+    required this.canAccessDatabase,
   });
 
   @override
@@ -270,8 +273,8 @@ class VerticalCalculatorTab extends ConsumerStatefulWidget {
 }
 
 class _VerticalCalculatorTabState extends ConsumerState<VerticalCalculatorTab> {
-  final List<TextEditingController> _rafterControllers = [
-    TextEditingController()
+  final List<material.TextEditingController> _rafterControllers = [
+    material.TextEditingController()
   ];
   final List<String> _rafterNames = ['Rafter 1'];
   double _gutterOverhang = 50.0;
@@ -286,46 +289,40 @@ class _VerticalCalculatorTabState extends ConsumerState<VerticalCalculatorTab> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  material.Widget build(material.BuildContext context) {
     final calcState = ref.watch(calculatorProvider);
     final defaultTiles = ref.watch(defaultTilesProvider);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return material.SingleChildScrollView(
+      padding: const material.EdgeInsets.all(16.0),
+      child: material.Column(
+        crossAxisAlignment: material.CrossAxisAlignment.start,
         children: [
-          // Tile selection section
-          Text(
+          material.Text(
             'Select Tile',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+            style: material.Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: material.FontWeight.bold,
                 ),
           ),
-          const SizedBox(height: 8),
+          const material.SizedBox(height: 8),
           _buildTileSelector(defaultTiles),
-
-          const SizedBox(height: 16),
-
-          // Additional options
-          Text(
+          const material.SizedBox(height: 16),
+          material.Text(
             'Options',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+            style: material.Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: material.FontWeight.bold,
                 ),
           ),
-          const SizedBox(height: 8),
-
-          // Gutter overhang
-          Row(
+          const material.SizedBox(height: 8),
+          material.Row(
             children: [
-              const Expanded(
+              const material.Expanded(
                 flex: 3,
-                child: Text('Gutter Overhang:'),
+                child: material.Text('Gutter Overhang:'),
               ),
-              Expanded(
+              material.Expanded(
                 flex: 5,
-                child: Slider(
+                child: material.Slider(
                   value: _gutterOverhang,
                   min: 25.0,
                   max: 75.0,
@@ -341,25 +338,23 @@ class _VerticalCalculatorTabState extends ConsumerState<VerticalCalculatorTab> {
                   },
                 ),
               ),
-              SizedBox(
+              material.SizedBox(
                 width: 50,
-                child: Text('${_gutterOverhang.round()} mm'),
+                child: material.Text('${_gutterOverhang.round()} mm'),
               ),
             ],
           ),
-
-          // Dry Ridge Option
-          Row(
+          material.Row(
             children: [
-              const Expanded(
+              const material.Expanded(
                 flex: 3,
-                child: Text('Use Dry Ridge:'),
+                child: material.Text('Use Dry Ridge:'),
               ),
-              Expanded(
+              material.Expanded(
                 flex: 5,
-                child: Row(
+                child: material.Row(
                   children: [
-                    Radio<String>(
+                    material.Radio<String>(
                       value: 'YES',
                       groupValue: _useDryRidge,
                       onChanged: (value) {
@@ -371,9 +366,9 @@ class _VerticalCalculatorTabState extends ConsumerState<VerticalCalculatorTab> {
                             .setUseDryRidge(value!);
                       },
                     ),
-                    const Text('Yes'),
-                    const SizedBox(width: 16),
-                    Radio<String>(
+                    const material.Text('Yes'),
+                    const material.SizedBox(width: 16),
+                    material.Radio<String>(
                       value: 'NO',
                       groupValue: _useDryRidge,
                       onChanged: (value) {
@@ -385,116 +380,107 @@ class _VerticalCalculatorTabState extends ConsumerState<VerticalCalculatorTab> {
                             .setUseDryRidge(value!);
                       },
                     ),
-                    const Text('No'),
+                    const material.Text('No'),
                   ],
                 ),
               ),
             ],
           ),
-
-          const SizedBox(height: 24),
-
-          // Rafter height input section
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          const material.SizedBox(height: 24),
+          material.Row(
+            mainAxisAlignment: material.MainAxisAlignment.spaceBetween,
             children: [
-              Text(
+              material.Text(
                 'Rafter Height',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style:
+                    material.Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: material.FontWeight.bold,
+                        ),
               ),
-              if (widget.isPro)
-                TextButton.icon(
+              if (widget.canUseMultipleRafters)
+                material.TextButton.icon(
                   onPressed: _addRafter,
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add Rafter'),
+                  icon: const material.Icon(material.Icons.add, size: 18),
+                  label: const material.Text('Add Rafter'),
                 ),
             ],
           ),
-          const SizedBox(height: 8),
-
+          const material.SizedBox(height: 8),
           ..._buildRafterInputs(),
-
-          // Pro feature notice for free users
-          if (!widget.isPro)
-            Container(
-              margin: const EdgeInsets.symmetric(vertical: 16),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context)
+          if (!widget.canUseMultipleRafters)
+            material.Container(
+              margin: const material.EdgeInsets.symmetric(vertical: 16),
+              padding: const material.EdgeInsets.all(12),
+              decoration: material.BoxDecoration(
+                color: material.Theme.of(context)
                     .colorScheme
                     .secondaryContainer
                     .withOpacity(0.5),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.secondaryContainer,
+                borderRadius: material.BorderRadius.circular(8),
+                border: material.Border.all(
+                  color:
+                      material.Theme.of(context).colorScheme.secondaryContainer,
                 ),
               ),
-              child: Row(
+              child: material.Row(
                 children: [
-                  Icon(
-                    Icons.workspace_premium,
-                    color: Theme.of(context).colorScheme.secondary,
+                  material.Icon(
+                    material.Icons.workspace_premium,
+                    color: material.Theme.of(context).colorScheme.secondary,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  const material.SizedBox(width: 12),
+                  material.Expanded(
+                    child: material.Column(
+                      crossAxisAlignment: material.CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        material.Text(
                           'Pro Feature',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.secondary,
+                          style: material.TextStyle(
+                            fontWeight: material.FontWeight.bold,
+                            color: material.Theme.of(context)
+                                .colorScheme
+                                .secondary,
                           ),
                         ),
-                        const Text(
+                        const material.Text(
                           'Upgrade to Pro to calculate multiple rafters at once',
-                          style: TextStyle(fontSize: 12),
+                          style: material.TextStyle(fontSize: 12),
                         ),
                       ],
                     ),
                   ),
-                  TextButton(
+                  material.TextButton(
                     onPressed: () {
-                      // TODO: Navigate to upgrade screen
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Upgrade feature coming soon!'),
-                        ),
-                      );
+                      context.go('/subscription');
                     },
-                    child: const Text('Upgrade'),
+                    child: const material.Text('Upgrade'),
                   ),
                 ],
               ),
             ),
-
-          // Results section
           if (calcState.verticalResult != null) _buildResultsCard(calcState),
-
-          // Error display
           if (calcState.errorMessage != null)
-            Container(
-              margin: const EdgeInsets.only(top: 16),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.errorContainer,
-                borderRadius: BorderRadius.circular(8),
+            material.Container(
+              margin: const material.EdgeInsets.only(top: 16),
+              padding: const material.EdgeInsets.all(12),
+              decoration: material.BoxDecoration(
+                color: material.Theme.of(context).colorScheme.errorContainer,
+                borderRadius: material.BorderRadius.circular(8),
               ),
-              child: Row(
+              child: material.Row(
                 children: [
-                  Icon(
-                    Icons.error_outline,
-                    color: Theme.of(context).colorScheme.error,
+                  material.Icon(
+                    material.Icons.error_outline,
+                    color: material.Theme.of(context).colorScheme.error,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
+                  const material.SizedBox(width: 12),
+                  material.Expanded(
+                    child: material.Text(
                       calcState.errorMessage!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onErrorContainer,
+                      style: material.TextStyle(
+                        color: material.Theme.of(context)
+                            .colorScheme
+                            .onErrorContainer,
                       ),
                     ),
                   ),
@@ -506,41 +492,42 @@ class _VerticalCalculatorTabState extends ConsumerState<VerticalCalculatorTab> {
     );
   }
 
-  Widget _buildResultsCard(CalculatorState calcState) {
+  material.Widget _buildResultsCard(CalculatorState calcState) {
     final result = calcState.verticalResult!;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return material.Card(
+      margin: const material.EdgeInsets.symmetric(vertical: 16),
+      child: material.Padding(
+        padding: const material.EdgeInsets.all(16.0),
+        child: material.Column(
+          crossAxisAlignment: material.CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            material.Row(
+              mainAxisAlignment: material.MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                material.Text(
                   'Vertical Calculation Results',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                  style: material.Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(
+                        fontWeight: material.FontWeight.bold,
                       ),
                 ),
-                Text(
+                material.Text(
                   result.solution,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.bold,
+                  style: material.TextStyle(
+                    color: material.Theme.of(context).colorScheme.primary,
+                    fontWeight: material.FontWeight.bold,
                   ),
                 ),
               ],
             ),
-            const Divider(),
-
-            // Results grid
-            GridView.count(
+            const material.Divider(),
+            material.GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
+              physics: const material.NeverScrollableScrollPhysics(),
               childAspectRatio: 3,
               children: [
                 _resultItem('Input Rafter', '${result.inputRafter} mm'),
@@ -559,45 +546,46 @@ class _VerticalCalculatorTabState extends ConsumerState<VerticalCalculatorTab> {
                   _resultItem('Split Gauge', result.splitGauge!),
               ],
             ),
-
-            // Warning message if any
             if (result.warning != null)
-              Container(
-                margin: const EdgeInsets.only(top: 16),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.amber),
+              material.Container(
+                margin: const material.EdgeInsets.only(top: 16),
+                padding: const material.EdgeInsets.all(12),
+                decoration: material.BoxDecoration(
+                  color: material.Colors.amber.withOpacity(0.2),
+                  borderRadius: material.BorderRadius.circular(8),
+                  border: material.Border.all(color: material.Colors.amber),
                 ),
-                child: Row(
+                child: material.Row(
                   children: [
-                    const Icon(Icons.warning_amber, color: Colors.amber),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(result.warning!)),
+                    const material.Icon(material.Icons.warning_amber,
+                        color: material.Colors.amber),
+                    const material.SizedBox(width: 8),
+                    material.Expanded(child: material.Text(result.warning!)),
                   ],
                 ),
               ),
-
-            // Action buttons
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            const material.SizedBox(height: 16),
+            material.Row(
+              mainAxisAlignment: material.MainAxisAlignment.end,
               children: [
-                OutlinedButton.icon(
-                  onPressed: () {
-                    // TODO: Save calculation
-                  },
-                  icon: const Icon(Icons.bookmark_border),
-                  label: const Text('Save'),
+                material.OutlinedButton.icon(
+                  onPressed: widget.canExport
+                      ? () {
+                          // TODO: Save calculation
+                        }
+                      : null,
+                  icon: const material.Icon(material.Icons.bookmark_border),
+                  label: const material.Text('Save'),
                 ),
-                const SizedBox(width: 8),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    // TODO: Share calculation
-                  },
-                  icon: const Icon(Icons.share),
-                  label: const Text('Share'),
+                const material.SizedBox(width: 8),
+                material.OutlinedButton.icon(
+                  onPressed: widget.canExport
+                      ? () {
+                          // TODO: Share calculation
+                        }
+                      : null,
+                  icon: const material.Icon(material.Icons.share),
+                  label: const material.Text('Share'),
                 ),
               ],
             ),
@@ -607,47 +595,48 @@ class _VerticalCalculatorTabState extends ConsumerState<VerticalCalculatorTab> {
     ).animate().fadeIn();
   }
 
-  Widget _resultItem(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.start,
+  material.Widget _resultItem(String label, String value) {
+    return material.Row(
+      mainAxisAlignment: material.MainAxisAlignment.start,
+      crossAxisAlignment: material.CrossAxisAlignment.start,
       children: [
-        Expanded(
+        material.Expanded(
           flex: 1,
-          child: Text(
+          child: material.Text(
             '$label:',
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            style:
+                const material.TextStyle(fontWeight: material.FontWeight.bold),
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
+        const material.SizedBox(width: 8),
+        material.Expanded(
           flex: 1,
-          child: Text(value),
+          child: material.Text(value),
         ),
       ],
     );
   }
 
-  List<Widget> _buildRafterInputs() {
-    final List<Widget> rafterInputs = [];
-
-    // Only show one input for free users
-    final int displayCount = widget.isPro ? _rafterControllers.length : 1;
+  List<material.Widget> _buildRafterInputs() {
+    final List<material.Widget> rafterInputs = [];
+    final int displayCount =
+        widget.canUseMultipleRafters ? _rafterControllers.length : 1;
 
     for (int i = 0; i < displayCount; i++) {
       rafterInputs.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 16.0),
-          child: Row(
+        material.Padding(
+          padding: const material.EdgeInsets.only(bottom: 16.0),
+          child: material.Row(
             children: [
-              if (widget.isPro) ...[
-                Expanded(
+              if (widget.canUseMultipleRafters) ...[
+                material.Expanded(
                   flex: 3,
-                  child: TextField(
-                    controller: TextEditingController(text: _rafterNames[i]),
-                    decoration: const InputDecoration(
+                  child: material.TextField(
+                    controller:
+                        material.TextEditingController(text: _rafterNames[i]),
+                    decoration: const material.InputDecoration(
                       isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
+                      contentPadding: material.EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 16,
                       ),
@@ -659,29 +648,32 @@ class _VerticalCalculatorTabState extends ConsumerState<VerticalCalculatorTab> {
                     },
                   ),
                 ),
-                const SizedBox(width: 16),
+                const material.SizedBox(width: 16),
               ],
-              Expanded(
-                flex: widget.isPro ? 5 : 8,
-                child: TextField(
+              material.Expanded(
+                flex: widget.canUseMultipleRafters ? 5 : 8,
+                child: material.TextField(
                   controller: _rafterControllers[i],
-                  decoration: InputDecoration(
-                    labelText: widget.isPro ? null : 'Rafter height in mm',
+                  decoration: material.InputDecoration(
+                    labelText: widget.canUseMultipleRafters
+                        ? null
+                        : 'Rafter height in mm',
                     hintText: 'e.g., 6000',
                     suffixText: 'mm',
                     isDense: true,
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(
+                  keyboardType: const material.TextInputType.numberWithOptions(
                     decimal: true,
                   ),
                 ),
               ),
-              if (widget.isPro && _rafterControllers.length > 1) ...[
-                const SizedBox(width: 8),
-                IconButton(
+              if (widget.canUseMultipleRafters &&
+                  _rafterControllers.length > 1) ...[
+                const material.SizedBox(width: 8),
+                material.IconButton(
                   onPressed: () => _removeRafter(i),
-                  icon: const Icon(Icons.delete_outline),
-                  color: Theme.of(context).colorScheme.error,
+                  icon: const material.Icon(material.Icons.delete_outline),
+                  color: material.Theme.of(context).colorScheme.error,
                   tooltip: 'Remove rafter',
                 ),
               ],
@@ -694,24 +686,36 @@ class _VerticalCalculatorTabState extends ConsumerState<VerticalCalculatorTab> {
     return rafterInputs;
   }
 
-  Widget _buildTileSelector(List<TileModel> tiles) {
+  material.Widget _buildTileSelector(List<TileModel> tiles) {
     final calculatorNotifier = ref.read(calculatorProvider.notifier);
     final selectedTile = ref.watch(calculatorProvider).selectedTile;
 
-    return DropdownButtonFormField<String>(
-      decoration: const InputDecoration(
-        border: OutlineInputBorder(),
-        contentPadding: EdgeInsets.symmetric(
+    if (!widget.canAccessDatabase) {
+      return material.Column(
+        crossAxisAlignment: material.CrossAxisAlignment.start,
+        children: [
+          const material.Text(
+              'Free users must input tile measurements manually'),
+          const material.SizedBox(height: 12),
+          _buildManualTileInputs(),
+        ],
+      );
+    }
+
+    return material.DropdownButtonFormField<String>(
+      decoration: const material.InputDecoration(
+        border: material.OutlineInputBorder(),
+        contentPadding: material.EdgeInsets.symmetric(
           horizontal: 12,
           vertical: 16,
         ),
       ),
       value: selectedTile?.id,
-      hint: const Text('Select tile type'),
-      items: tiles.map((tile) {
-        return DropdownMenuItem(
+      hint: const material.Text('Select tile type'),
+      items: tiles.map<material.DropdownMenuItem<String>>((tile) {
+        return material.DropdownMenuItem<String>(
           value: tile.id,
-          child: Text('${tile.name} (${tile.materialTypeString})'),
+          child: material.Text('${tile.name} (${tile.materialTypeString})'),
         );
       }).toList(),
       onChanged: (value) {
@@ -724,16 +728,16 @@ class _VerticalCalculatorTabState extends ConsumerState<VerticalCalculatorTab> {
   }
 
   void _addRafter() {
-    if (!widget.isPro) return;
+    if (!widget.canUseMultipleRafters) return;
 
     setState(() {
-      _rafterControllers.add(TextEditingController());
+      _rafterControllers.add(material.TextEditingController());
       _rafterNames.add('Rafter ${_rafterControllers.length}');
     });
   }
 
   void _removeRafter(int index) {
-    if (!widget.isPro) return;
+    if (!widget.canUseMultipleRafters) return;
     if (_rafterControllers.length <= 1) return;
 
     setState(() {
@@ -746,25 +750,25 @@ class _VerticalCalculatorTabState extends ConsumerState<VerticalCalculatorTab> {
   void calculate() {
     final calculatorState = ref.read(calculatorProvider);
     if (calculatorState.selectedTile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a tile type first'),
+      material.ScaffoldMessenger.of(context).showSnackBar(
+        const material.SnackBar(
+          content: material.Text('Please select a tile type first'),
         ),
       );
       return;
     }
 
-    // Get rafter heights from controllers
     final List<double> rafterHeights = [];
-    final displayCount = widget.isPro ? _rafterControllers.length : 1;
+    final displayCount =
+        widget.canUseMultipleRafters ? _rafterControllers.length : 1;
 
     for (int i = 0; i < displayCount; i++) {
       final heightText = _rafterControllers[i].text.trim();
       if (heightText.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Please enter a height for ${widget.isPro ? _rafterNames[i] : 'the rafter'}'),
+        material.ScaffoldMessenger.of(context).showSnackBar(
+          material.SnackBar(
+            content: material.Text(
+                'Please enter a height for ${widget.canUseMultipleRafters ? _rafterNames[i] : 'the rafter'}'),
           ),
         );
         return;
@@ -772,10 +776,10 @@ class _VerticalCalculatorTabState extends ConsumerState<VerticalCalculatorTab> {
 
       final double? height = double.tryParse(heightText);
       if (height == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Invalid height value for ${widget.isPro ? _rafterNames[i] : 'the rafter'}'),
+        material.ScaffoldMessenger.of(context).showSnackBar(
+          material.SnackBar(
+            content: material.Text(
+                'Invalid height value for ${widget.canUseMultipleRafters ? _rafterNames[i] : 'the rafter'}'),
           ),
         );
         return;
@@ -784,29 +788,203 @@ class _VerticalCalculatorTabState extends ConsumerState<VerticalCalculatorTab> {
       rafterHeights.add(height);
     }
 
-    // Calculate
     ref.read(calculatorProvider.notifier).calculateVertical(rafterHeights);
+  }
+
+  material.Widget _buildManualTileInputs() {
+    final calculatorNotifier = ref.read(calculatorProvider.notifier);
+    final nameController = material.TextEditingController(text: 'Custom Tile');
+    final heightController = material.TextEditingController();
+    final widthController = material.TextEditingController();
+    final minGaugeController = material.TextEditingController();
+    final maxGaugeController = material.TextEditingController();
+    final minSpacingController = material.TextEditingController();
+    final maxSpacingController = material.TextEditingController();
+
+    return material.Column(
+      children: [
+        material.TextFormField(
+          controller: heightController,
+          decoration: const material.InputDecoration(
+            labelText: 'Tile Height/Length (mm) *',
+            border: material.OutlineInputBorder(),
+          ),
+          keyboardType: material.TextInputType.number,
+        ),
+        const material.SizedBox(height: 12),
+        material.TextFormField(
+          controller: widthController,
+          decoration: const material.InputDecoration(
+            labelText: 'Tile Cover Width (mm) *',
+            border: material.OutlineInputBorder(),
+          ),
+          keyboardType: material.TextInputType.number,
+        ),
+        const material.SizedBox(height: 12),
+        material.TextFormField(
+          controller: minGaugeController,
+          decoration: const material.InputDecoration(
+            labelText: 'Min Gauge (mm) *',
+            border: material.OutlineInputBorder(),
+          ),
+          keyboardType: material.TextInputType.number,
+        ),
+        const material.SizedBox(height: 12),
+        material.TextFormField(
+          controller: maxGaugeController,
+          decoration: const material.InputDecoration(
+            labelText: 'Max Gauge (mm) *',
+            border: material.OutlineInputBorder(),
+          ),
+          keyboardType: material.TextInputType.number,
+        ),
+        const material.SizedBox(height: 12),
+        material.TextFormField(
+          controller: minSpacingController,
+          decoration: const material.InputDecoration(
+            labelText: 'Min Spacing (mm) *',
+            border: material.OutlineInputBorder(),
+          ),
+          keyboardType: material.TextInputType.number,
+        ),
+        const material.SizedBox(height: 12),
+        material.TextFormField(
+          controller: maxSpacingController,
+          decoration: const material.InputDecoration(
+            labelText: 'Max Spacing (mm) *',
+            border: material.OutlineInputBorder(),
+          ),
+          keyboardType: material.TextInputType.number,
+        ),
+        const material.SizedBox(height: 16),
+        material.ElevatedButton(
+          onPressed: () {
+            if (heightController.text.isNotEmpty &&
+                widthController.text.isNotEmpty &&
+                minGaugeController.text.isNotEmpty &&
+                maxGaugeController.text.isNotEmpty &&
+                minSpacingController.text.isNotEmpty &&
+                maxSpacingController.text.isNotEmpty) {
+              final now = DateTime.now();
+              final tempTile = TileModel(
+                id: 'temp_manual_tile_${now.millisecondsSinceEpoch}',
+                name: nameController.text,
+                manufacturer: 'Manual Input',
+                materialType: MaterialType.unknown,
+                description: 'Manually entered tile specifications',
+                isPublic: false,
+                isApproved: false,
+                createdById: 'temp_user',
+                createdAt: now,
+                updatedAt: now,
+                slateTileHeight: double.tryParse(heightController.text) ?? 0,
+                tileCoverWidth: double.tryParse(widthController.text) ?? 0,
+                minGauge: double.tryParse(minGaugeController.text) ?? 0,
+                maxGauge: double.tryParse(maxGaugeController.text) ?? 0,
+                minSpacing: double.tryParse(minSpacingController.text) ?? 0,
+                maxSpacing: double.tryParse(maxSpacingController.text) ?? 0,
+                defaultCrossBonded: false,
+              );
+
+              calculatorNotifier.setTile(tempTile);
+
+              material.ScaffoldMessenger.of(context).showSnackBar(
+                const material.SnackBar(
+                  content: material.Text('Tile specifications applied'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            } else {
+              material.ScaffoldMessenger.of(context).showSnackBar(
+                const material.SnackBar(
+                  content: material.Text(
+                      'Please fill in all tile specification fields'),
+                  backgroundColor: material.Colors.red,
+                ),
+              );
+            }
+          },
+          child: const material.Text('Apply Specifications'),
+        ),
+        const material.SizedBox(height: 16),
+        material.Container(
+          padding: const material.EdgeInsets.all(12),
+          decoration: material.BoxDecoration(
+            color: material.Colors.amber.shade100,
+            borderRadius: material.BorderRadius.circular(8),
+            border: material.Border.all(color: material.Colors.amber.shade300),
+          ),
+          child: material.Column(
+            crossAxisAlignment: material.CrossAxisAlignment.start,
+            children: [
+              material.Row(
+                children: [
+                  material.Icon(material.Icons.info_outline,
+                      color: material.Colors.amber.shade800),
+                  const material.SizedBox(width: 8),
+                  material.Text(
+                    'Pro Feature',
+                    style: material.TextStyle(
+                      fontWeight: material.FontWeight.bold,
+                      color: material.Colors.amber.shade900,
+                    ),
+                  ),
+                ],
+              ),
+              const material.SizedBox(height: 8),
+              const material.Text(
+                'Pro users have access to our complete tile database with predefined measurements for all standard UK roofing tiles.',
+                style: material.TextStyle(fontSize: 12),
+              ),
+              const material.SizedBox(height: 8),
+              material.OutlinedButton(
+                onPressed: () {
+                  context.go('/subscription');
+                },
+                style: material.OutlinedButton.styleFrom(
+                  foregroundColor: material.Colors.amber.shade900,
+                ),
+                child: const material.Text('Upgrade to Pro'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 
-class HorizontalCalculatorTab extends StatefulWidget {
-  final bool isPro;
+class HorizontalCalculatorTab extends ConsumerStatefulWidget {
+  final UserModel user;
+  final bool canUseMultipleWidths;
+  final bool canUseAdvancedOptions;
+  final bool canExport;
+  final bool canAccessDatabase;
 
   const HorizontalCalculatorTab({
     super.key,
-    required this.isPro,
+    required this.user,
+    required this.canUseMultipleWidths,
+    required this.canUseAdvancedOptions,
+    required this.canExport,
+    required this.canAccessDatabase,
   });
 
   @override
-  State<HorizontalCalculatorTab> createState() =>
+  ConsumerState<HorizontalCalculatorTab> createState() =>
       _HorizontalCalculatorTabState();
 }
 
-class _HorizontalCalculatorTabState extends State<HorizontalCalculatorTab> {
-  final List<TextEditingController> _widthControllers = [
-    TextEditingController()
+class _HorizontalCalculatorTabState
+    extends ConsumerState<HorizontalCalculatorTab> {
+  final List<material.TextEditingController> _widthControllers = [
+    material.TextEditingController()
   ];
   final List<String> _widthNames = ['Width 1'];
+  String _useDryVerge = 'NO';
+  String _abutmentSide = 'NONE';
+  String _useLHTile = 'NO';
+  String _crossBonded = 'NO';
 
   @override
   void dispose() {
@@ -817,96 +995,288 @@ class _HorizontalCalculatorTabState extends State<HorizontalCalculatorTab> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  material.Widget build(material.BuildContext context) {
+    final calcState = ref.watch(calculatorProvider);
+    final defaultTiles = ref.watch(defaultTilesProvider);
+
+    return material.SingleChildScrollView(
+      padding: const material.EdgeInsets.all(16.0),
+      child: material.Column(
+        crossAxisAlignment: material.CrossAxisAlignment.start,
         children: [
-          // Tile selection section
-          Text(
+          material.Text(
             'Select Tile',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+            style: material.Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: material.FontWeight.bold,
                 ),
           ),
-          const SizedBox(height: 8),
-          _buildTileSelector(),
-
-          const SizedBox(height: 24),
-
-          // Width input section
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          const material.SizedBox(height: 8),
+          _buildTileSelector(defaultTiles),
+          const material.SizedBox(height: 16),
+          material.Text(
+            'Options',
+            style: material.Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: material.FontWeight.bold,
+                ),
+          ),
+          const material.SizedBox(height: 8),
+          material.Row(
             children: [
-              Text(
-                'Width Measurement',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+              const material.Expanded(
+                flex: 3,
+                child: material.Text('Use Dry Verge:'),
               ),
-              if (widget.isPro)
-                TextButton.icon(
+              material.Expanded(
+                flex: 5,
+                child: material.Row(
+                  children: [
+                    material.Radio<String>(
+                      value: 'YES',
+                      groupValue: _useDryVerge,
+                      onChanged: (value) {
+                        setState(() {
+                          _useDryVerge = value!;
+                        });
+                        ref
+                            .read(calculatorProvider.notifier)
+                            .setUseDryVerge(value!);
+                      },
+                    ),
+                    const material.Text('Yes'),
+                    const material.SizedBox(width: 16),
+                    material.Radio<String>(
+                      value: 'NO',
+                      groupValue: _useDryVerge,
+                      onChanged: (value) {
+                        setState(() {
+                          _useDryVerge = value!;
+                        });
+                        ref
+                            .read(calculatorProvider.notifier)
+                            .setUseDryVerge(value!);
+                      },
+                    ),
+                    const material.Text('No'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          material.Row(
+            children: [
+              const material.Expanded(
+                flex: 3,
+                child: material.Text('Abutment Side:'),
+              ),
+              material.Expanded(
+                flex: 5,
+                child: material.DropdownButton<String>(
+                  value: _abutmentSide,
+                  isExpanded: true,
+                  items: const [
+                    material.DropdownMenuItem(
+                        value: 'NONE', child: material.Text('None')),
+                    material.DropdownMenuItem(
+                        value: 'LEFT', child: material.Text('Left')),
+                    material.DropdownMenuItem(
+                        value: 'RIGHT', child: material.Text('Right')),
+                    material.DropdownMenuItem(
+                        value: 'BOTH', child: material.Text('Both')),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _abutmentSide = value!;
+                    });
+                    ref
+                        .read(calculatorProvider.notifier)
+                        .setAbutmentSide(value!);
+                  },
+                ),
+              ),
+            ],
+          ),
+          material.Row(
+            children: [
+              const material.Expanded(
+                flex: 3,
+                child: material.Text('Use LH Tile:'),
+              ),
+              material.Expanded(
+                flex: 5,
+                child: material.Row(
+                  children: [
+                    material.Radio<String>(
+                      value: 'YES',
+                      groupValue: _useLHTile,
+                      onChanged: (value) {
+                        setState(() {
+                          _useLHTile = value!;
+                        });
+                        ref
+                            .read(calculatorProvider.notifier)
+                            .setUseLHTile(value!);
+                      },
+                    ),
+                    const material.Text('Yes'),
+                    const material.SizedBox(width: 16),
+                    material.Radio<String>(
+                      value: 'NO',
+                      groupValue: _useLHTile,
+                      onChanged: (value) {
+                        setState(() {
+                          _useLHTile = value!;
+                        });
+                        ref
+                            .read(calculatorProvider.notifier)
+                            .setUseLHTile(value!);
+                      },
+                    ),
+                    const material.Text('No'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          material.Row(
+            children: [
+              const material.Expanded(
+                flex: 3,
+                child: material.Text('Cross Bonded:'),
+              ),
+              material.Expanded(
+                flex: 5,
+                child: material.Row(
+                  children: [
+                    material.Radio<String>(
+                      value: 'YES',
+                      groupValue: _crossBonded,
+                      onChanged: (value) {
+                        setState(() {
+                          _crossBonded = value!;
+                        });
+                        ref
+                            .read(calculatorProvider.notifier)
+                            .setCrossBonded(value!);
+                      },
+                    ),
+                    const material.Text('Yes'),
+                    const material.SizedBox(width: 16),
+                    material.Radio<String>(
+                      value: 'NO',
+                      groupValue: _crossBonded,
+                      onChanged: (value) {
+                        setState(() {
+                          _crossBonded = value!;
+                        });
+                        ref
+                            .read(calculatorProvider.notifier)
+                            .setCrossBonded(value!);
+                      },
+                    ),
+                    const material.Text('No'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const material.SizedBox(height: 24),
+          material.Row(
+            mainAxisAlignment: material.MainAxisAlignment.spaceBetween,
+            children: [
+              material.Text(
+                'Width Measurement',
+                style:
+                    material.Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: material.FontWeight.bold,
+                        ),
+              ),
+              if (widget.canUseMultipleWidths)
+                material.TextButton.icon(
                   onPressed: _addWidth,
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add Width'),
+                  icon: const material.Icon(material.Icons.add, size: 18),
+                  label: const material.Text('Add Width'),
                 ),
             ],
           ),
-          const SizedBox(height: 8),
-
+          const material.SizedBox(height: 8),
           ..._buildWidthInputs(),
-
-          // Pro feature notice for free users
-          if (!widget.isPro)
-            Container(
-              margin: const EdgeInsets.symmetric(vertical: 16),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context)
+          if (!widget.canUseMultipleWidths)
+            material.Container(
+              margin: const material.EdgeInsets.symmetric(vertical: 16),
+              padding: const material.EdgeInsets.all(12),
+              decoration: material.BoxDecoration(
+                color: material.Theme.of(context)
                     .colorScheme
                     .secondaryContainer
                     .withOpacity(0.5),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.secondaryContainer,
+                borderRadius: material.BorderRadius.circular(8),
+                border: material.Border.all(
+                  color:
+                      material.Theme.of(context).colorScheme.secondaryContainer,
                 ),
               ),
-              child: Row(
+              child: material.Row(
                 children: [
-                  Icon(
-                    Icons.workspace_premium,
-                    color: Theme.of(context).colorScheme.secondary,
+                  material.Icon(
+                    material.Icons.workspace_premium,
+                    color: material.Theme.of(context).colorScheme.secondary,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  const material.SizedBox(width: 12),
+                  material.Expanded(
+                    child: material.Column(
+                      crossAxisAlignment: material.CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        material.Text(
                           'Pro Feature',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.secondary,
+                          style: material.TextStyle(
+                            fontWeight: material.FontWeight.bold,
+                            color: material.Theme.of(context)
+                                .colorScheme
+                                .secondary,
                           ),
                         ),
-                        const Text(
+                        const material.Text(
                           'Upgrade to Pro to calculate multiple widths at once',
-                          style: TextStyle(fontSize: 12),
+                          style: material.TextStyle(fontSize: 12),
                         ),
                       ],
                     ),
                   ),
-                  TextButton(
+                  material.TextButton(
                     onPressed: () {
-                      // TODO: Navigate to upgrade screen
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Upgrade feature coming soon!'),
-                        ),
-                      );
+                      context.go('/subscription');
                     },
-                    child: const Text('Upgrade'),
+                    child: const material.Text('Upgrade'),
+                  ),
+                ],
+              ),
+            ),
+          if (calcState.horizontalResult != null)
+            _buildHorizontalResultsCard(calcState),
+          if (calcState.errorMessage != null)
+            material.Container(
+              margin: const material.EdgeInsets.only(top: 16),
+              padding: const material.EdgeInsets.all(12),
+              decoration: material.BoxDecoration(
+                color: material.Theme.of(context).colorScheme.errorContainer,
+                borderRadius: material.BorderRadius.circular(8),
+              ),
+              child: material.Row(
+                children: [
+                  material.Icon(
+                    material.Icons.error_outline,
+                    color: material.Theme.of(context).colorScheme.error,
+                  ),
+                  const material.SizedBox(width: 12),
+                  material.Expanded(
+                    child: material.Text(
+                      calcState.errorMessage!,
+                      style: material.TextStyle(
+                        color: material.Theme.of(context)
+                            .colorScheme
+                            .onErrorContainer,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -916,26 +1286,26 @@ class _HorizontalCalculatorTabState extends State<HorizontalCalculatorTab> {
     );
   }
 
-  List<Widget> _buildWidthInputs() {
-    final List<Widget> widthInputs = [];
-
-    // Only show one input for free users
-    final int displayCount = widget.isPro ? _widthControllers.length : 1;
+  List<material.Widget> _buildWidthInputs() {
+    final List<material.Widget> widthInputs = [];
+    final int displayCount =
+        widget.canUseMultipleWidths ? _widthControllers.length : 1;
 
     for (int i = 0; i < displayCount; i++) {
       widthInputs.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 16.0),
-          child: Row(
+        material.Padding(
+          padding: const material.EdgeInsets.only(bottom: 16.0),
+          child: material.Row(
             children: [
-              if (widget.isPro) ...[
-                Expanded(
+              if (widget.canUseMultipleWidths) ...[
+                material.Expanded(
                   flex: 3,
-                  child: TextField(
-                    controller: TextEditingController(text: _widthNames[i]),
-                    decoration: const InputDecoration(
+                  child: material.TextField(
+                    controller:
+                        material.TextEditingController(text: _widthNames[i]),
+                    decoration: const material.InputDecoration(
                       isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
+                      contentPadding: material.EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 16,
                       ),
@@ -947,29 +1317,31 @@ class _HorizontalCalculatorTabState extends State<HorizontalCalculatorTab> {
                     },
                   ),
                 ),
-                const SizedBox(width: 16),
+                const material.SizedBox(width: 16),
               ],
-              Expanded(
-                flex: widget.isPro ? 5 : 8,
-                child: TextField(
+              material.Expanded(
+                flex: widget.canUseMultipleWidths ? 5 : 8,
+                child: material.TextField(
                   controller: _widthControllers[i],
-                  decoration: InputDecoration(
-                    labelText: widget.isPro ? null : 'Width in mm',
+                  decoration: material.InputDecoration(
+                    labelText:
+                        widget.canUseMultipleWidths ? null : 'Width in mm',
                     hintText: 'e.g., 5000',
                     suffixText: 'mm',
                     isDense: true,
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(
+                  keyboardType: const material.TextInputType.numberWithOptions(
                     decimal: true,
                   ),
                 ),
               ),
-              if (widget.isPro && _widthControllers.length > 1) ...[
-                const SizedBox(width: 8),
-                IconButton(
+              if (widget.canUseMultipleWidths &&
+                  _widthControllers.length > 1) ...[
+                const material.SizedBox(width: 8),
+                material.IconButton(
                   onPressed: () => _removeWidth(i),
-                  icon: const Icon(Icons.delete_outline),
-                  color: Theme.of(context).colorScheme.error,
+                  icon: const material.Icon(material.Icons.delete_outline),
+                  color: material.Theme.of(context).colorScheme.error,
                   tooltip: 'Remove width',
                 ),
               ],
@@ -982,48 +1354,58 @@ class _HorizontalCalculatorTabState extends State<HorizontalCalculatorTab> {
     return widthInputs;
   }
 
-  Widget _buildTileSelector() {
-    // Placeholder for tile selector - will be expanded in future implementations
-    return DropdownButtonFormField<String>(
-      decoration: const InputDecoration(
-        border: OutlineInputBorder(),
-        contentPadding: EdgeInsets.symmetric(
+  material.Widget _buildTileSelector(List<TileModel> tiles) {
+    final calculatorNotifier = ref.read(calculatorProvider.notifier);
+    final selectedTile = ref.watch(calculatorProvider).selectedTile;
+
+    if (!widget.canAccessDatabase) {
+      return material.Column(
+        crossAxisAlignment: material.CrossAxisAlignment.start,
+        children: [
+          const material.Text(
+              'Free users must input tile measurements manually'),
+          const material.SizedBox(height: 12),
+          _buildManualTileInputs(),
+        ],
+      );
+    }
+
+    return material.DropdownButtonFormField<String>(
+      decoration: const material.InputDecoration(
+        border: material.OutlineInputBorder(),
+        contentPadding: material.EdgeInsets.symmetric(
           horizontal: 12,
           vertical: 16,
         ),
       ),
-      hint: const Text('Select tile type'),
-      items: const [
-        DropdownMenuItem(
-          value: 'standard',
-          child: Text('Standard UK Plain Tile'),
-        ),
-        DropdownMenuItem(
-          value: 'double_roman',
-          child: Text('Double Roman'),
-        ),
-        DropdownMenuItem(
-          value: 'slate',
-          child: Text('Slate'),
-        ),
-      ],
+      value: selectedTile?.id,
+      hint: const material.Text('Select tile type'),
+      items: tiles.map<material.DropdownMenuItem<String>>((tile) {
+        return material.DropdownMenuItem<String>(
+          value: tile.id,
+          child: material.Text('${tile.name} (${tile.materialTypeString})'),
+        );
+      }).toList(),
       onChanged: (value) {
-        // Tile selection logic
+        if (value != null) {
+          final selected = tiles.firstWhere((tile) => tile.id == value);
+          calculatorNotifier.setTile(selected);
+        }
       },
     );
   }
 
   void _addWidth() {
-    if (!widget.isPro) return;
+    if (!widget.canUseMultipleWidths) return;
 
     setState(() {
-      _widthControllers.add(TextEditingController());
+      _widthControllers.add(material.TextEditingController());
       _widthNames.add('Width ${_widthControllers.length}');
     });
   }
 
   void _removeWidth(int index) {
-    if (!widget.isPro) return;
+    if (!widget.canUseMultipleWidths) return;
     if (_widthControllers.length <= 1) return;
 
     setState(() {
@@ -1034,6 +1416,314 @@ class _HorizontalCalculatorTabState extends State<HorizontalCalculatorTab> {
   }
 
   void calculate() {
-    // Add implementation or call appropriate method
+    final calculatorState = ref.read(calculatorProvider);
+    if (calculatorState.selectedTile == null) {
+      material.ScaffoldMessenger.of(context).showSnackBar(
+        const material.SnackBar(
+          content: material.Text('Please select a tile type first'),
+        ),
+      );
+      return;
+    }
+
+    final List<double> widths = [];
+    final displayCount =
+        widget.canUseMultipleWidths ? _widthControllers.length : 1;
+
+    for (int i = 0; i < displayCount; i++) {
+      final widthText = _widthControllers[i].text.trim();
+      if (widthText.isEmpty) {
+        material.ScaffoldMessenger.of(context).showSnackBar(
+          material.SnackBar(
+            content: material.Text(
+                'Please enter a width for ${widget.canUseMultipleWidths ? _widthNames[i] : 'the width'}'),
+          ),
+        );
+        return;
+      }
+
+      final double? width = double.tryParse(widthText);
+      if (width == null) {
+        material.ScaffoldMessenger.of(context).showSnackBar(
+          material.SnackBar(
+            content: material.Text(
+                'Invalid width value for ${widget.canUseMultipleWidths ? _widthNames[i] : 'the width'}'),
+          ),
+        );
+        return;
+      }
+
+      widths.add(width);
+    }
+
+    ref.read(calculatorProvider.notifier).calculateHorizontal(widths);
+  }
+
+  material.Widget _buildHorizontalResultsCard(CalculatorState calcState) {
+    final result = calcState.horizontalResult!;
+
+    return material.Card(
+      margin: const material.EdgeInsets.symmetric(vertical: 16),
+      child: material.Padding(
+        padding: const material.EdgeInsets.all(16.0),
+        child: material.Column(
+          crossAxisAlignment: material.CrossAxisAlignment.start,
+          children: [
+            material.Row(
+              mainAxisAlignment: material.MainAxisAlignment.spaceBetween,
+              children: [
+                material.Text(
+                  'Horizontal Calculation Results',
+                  style: material.Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(
+                        fontWeight: material.FontWeight.bold,
+                      ),
+                ),
+                material.Text(
+                  result.solution,
+                  style: material.TextStyle(
+                    color: material.Theme.of(context).colorScheme.primary,
+                    fontWeight: material.FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const material.Divider(),
+            material.GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const material.NeverScrollableScrollPhysics(),
+              childAspectRatio: 3,
+              children: [
+                _resultItem('Width', '${result.width} mm'),
+                if (result.lhOverhang != null)
+                  _resultItem('LH Overhang', '${result.lhOverhang} mm'),
+                if (result.rhOverhang != null)
+                  _resultItem('RH Overhang', '${result.rhOverhang} mm'),
+                if (result.cutTile != null)
+                  _resultItem('Cut Tile', '${result.cutTile} mm'),
+                _resultItem('First Mark', '${result.firstMark} mm'),
+                if (result.secondMark != null)
+                  _resultItem('Second Mark', '${result.secondMark} mm'),
+                _resultItem('Marks', result.marks),
+                if (result.splitMarks != null)
+                  _resultItem('Split Marks', result.splitMarks!),
+              ],
+            ),
+            const material.SizedBox(height: 16),
+            material.Row(
+              mainAxisAlignment: material.MainAxisAlignment.end,
+              children: [
+                material.OutlinedButton.icon(
+                  onPressed: widget.canExport
+                      ? () {
+                          // TODO: Save calculation
+                        }
+                      : null,
+                  icon: const material.Icon(material.Icons.bookmark_border),
+                  label: const material.Text('Save'),
+                ),
+                const material.SizedBox(width: 8),
+                material.OutlinedButton.icon(
+                  onPressed: widget.canExport
+                      ? () {
+                          // TODO: Share calculation
+                        }
+                      : null,
+                  icon: const material.Icon(material.Icons.share),
+                  label: const material.Text('Share'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn();
+  }
+
+  material.Widget _resultItem(String label, String value) {
+    return material.Row(
+      mainAxisAlignment: material.MainAxisAlignment.start,
+      crossAxisAlignment: material.CrossAxisAlignment.start,
+      children: [
+        material.Expanded(
+          flex: 1,
+          child: material.Text(
+            '$label:',
+            style:
+                const material.TextStyle(fontWeight: material.FontWeight.bold),
+          ),
+        ),
+        const material.SizedBox(width: 8),
+        material.Expanded(
+          flex: 1,
+          child: material.Text(value),
+        ),
+      ],
+    );
+  }
+
+  material.Widget _buildManualTileInputs() {
+    final calculatorNotifier = ref.read(calculatorProvider.notifier);
+    final nameController = material.TextEditingController(text: 'Custom Tile');
+    final heightController = material.TextEditingController();
+    final widthController = material.TextEditingController();
+    final minGaugeController = material.TextEditingController();
+    final maxGaugeController = material.TextEditingController();
+    final minSpacingController = material.TextEditingController();
+    final maxSpacingController = material.TextEditingController();
+
+    return material.Column(
+      children: [
+        material.TextFormField(
+          controller: heightController,
+          decoration: const material.InputDecoration(
+            labelText: 'Tile Height/Length (mm) *',
+            border: material.OutlineInputBorder(),
+          ),
+          keyboardType: material.TextInputType.number,
+        ),
+        const material.SizedBox(height: 12),
+        material.TextFormField(
+          controller: widthController,
+          decoration: const material.InputDecoration(
+            labelText: 'Tile Cover Width (mm) *',
+            border: material.OutlineInputBorder(),
+          ),
+          keyboardType: material.TextInputType.number,
+        ),
+        const material.SizedBox(height: 12),
+        material.TextFormField(
+          controller: minGaugeController,
+          decoration: const material.InputDecoration(
+            labelText: 'Min Gauge (mm) *',
+            border: material.OutlineInputBorder(),
+          ),
+          keyboardType: material.TextInputType.number,
+        ),
+        const material.SizedBox(height: 12),
+        material.TextFormField(
+          controller: maxGaugeController,
+          decoration: const material.InputDecoration(
+            labelText: 'Max Gauge (mm) *',
+            border: material.OutlineInputBorder(),
+          ),
+          keyboardType: material.TextInputType.number,
+        ),
+        const material.SizedBox(height: 12),
+        material.TextFormField(
+          controller: minSpacingController,
+          decoration: const material.InputDecoration(
+            labelText: 'Min Spacing (mm) *',
+            border: material.OutlineInputBorder(),
+          ),
+          keyboardType: material.TextInputType.number,
+        ),
+        const material.SizedBox(height: 12),
+        material.TextFormField(
+          controller: maxSpacingController,
+          decoration: const material.InputDecoration(
+            labelText: 'Max Spacing (mm) *',
+            border: material.OutlineInputBorder(),
+          ),
+          keyboardType: material.TextInputType.number,
+        ),
+        const material.SizedBox(height: 16),
+        material.ElevatedButton(
+          onPressed: () {
+            if (heightController.text.isNotEmpty &&
+                widthController.text.isNotEmpty &&
+                minGaugeController.text.isNotEmpty &&
+                maxGaugeController.text.isNotEmpty &&
+                minSpacingController.text.isNotEmpty &&
+                maxSpacingController.text.isNotEmpty) {
+              final now = DateTime.now();
+              final tempTile = TileModel(
+                id: 'temp_manual_tile_${now.millisecondsSinceEpoch}',
+                name: nameController.text,
+                manufacturer: 'Manual Input',
+                materialType: MaterialType.unknown,
+                description: 'Manually entered tile specifications',
+                isPublic: false,
+                isApproved: false,
+                createdById: 'temp_user',
+                createdAt: now,
+                updatedAt: now,
+                slateTileHeight: double.tryParse(heightController.text) ?? 0,
+                tileCoverWidth: double.tryParse(widthController.text) ?? 0,
+                minGauge: double.tryParse(minGaugeController.text) ?? 0,
+                maxGauge: double.tryParse(maxGaugeController.text) ?? 0,
+                minSpacing: double.tryParse(minSpacingController.text) ?? 0,
+                maxSpacing: double.tryParse(maxSpacingController.text) ?? 0,
+                defaultCrossBonded: false,
+              );
+
+              calculatorNotifier.setTile(tempTile);
+
+              material.ScaffoldMessenger.of(context).showSnackBar(
+                const material.SnackBar(
+                  content: material.Text('Tile specifications applied'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            } else {
+              material.ScaffoldMessenger.of(context).showSnackBar(
+                const material.SnackBar(
+                  content: material.Text(
+                      'Please fill in all tile specification fields'),
+                  backgroundColor: material.Colors.red,
+                ),
+              );
+            }
+          },
+          child: const material.Text('Apply Specifications'),
+        ),
+        const material.SizedBox(height: 16),
+        material.Container(
+          padding: const material.EdgeInsets.all(12),
+          decoration: material.BoxDecoration(
+            color: material.Colors.amber.shade100,
+            borderRadius: material.BorderRadius.circular(8),
+            border: material.Border.all(color: material.Colors.amber.shade300),
+          ),
+          child: material.Column(
+            crossAxisAlignment: material.CrossAxisAlignment.start,
+            children: [
+              material.Row(
+                children: [
+                  material.Icon(material.Icons.info_outline,
+                      color: material.Colors.amber.shade800),
+                  const material.SizedBox(width: 8),
+                  material.Text(
+                    'Pro Feature',
+                    style: material.TextStyle(
+                      fontWeight: material.FontWeight.bold,
+                      color: material.Colors.amber.shade900,
+                    ),
+                  ),
+                ],
+              ),
+              const material.SizedBox(height: 8),
+              const material.Text(
+                'Pro users have access to our complete tile database with predefined measurements for all standard UK roofing tiles.',
+                style: material.TextStyle(fontSize: 12),
+              ),
+              const material.SizedBox(height: 8),
+              material.OutlinedButton(
+                onPressed: () {
+                  context.go('/subscription');
+                },
+                style: material.OutlinedButton.styleFrom(
+                  foregroundColor: material.Colors.amber.shade900,
+                ),
+                child: const material.Text('Upgrade to Pro'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }

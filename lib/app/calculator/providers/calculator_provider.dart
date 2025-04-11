@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:roofgrid_uk/app/calculator/models/horizontal_calculation_input.dart';
-import 'package:roofgrid_uk/app/calculator/models/horizontal_calculation_result.dart';
-import 'package:roofgrid_uk/app/calculator/models/vertical_calculation_input.dart';
-import 'package:roofgrid_uk/app/calculator/models/vertical_calculation_result.dart';
-import 'package:roofgrid_uk/app/calculator/services/horizontal_calculation_service.dart';
-import 'package:roofgrid_uk/app/calculator/services/vertical_calculation_service.dart';
-import 'package:roofgrid_uk/app/tiles/models/tile_model.dart';
+import '../../../models/calculator/horizontal_calculation_input.dart';
+import '../../../models/calculator/horizontal_calculation_result.dart';
+import '../../../models/calculator/vertical_calculation_input.dart';
+import '../../../models/calculator/vertical_calculation_result.dart';
+import '../services/horizontal_calculation_service.dart';
+import '../services/vertical_calculation_service.dart';
+import 'package:roofgriduk/models/tile_model.dart';
 
 // State class for calculator
 class CalculatorState {
@@ -121,14 +121,16 @@ class CalculatorNotifier extends StateNotifier<CalculatorState> {
       final input = VerticalCalculationInput(
         rafterHeights: rafterHeights,
         gutterOverhang: state.gutterOverhang,
+        useDryRidge: state.useDryRidge,
+      );
+
+      final result = VerticalCalculationService.calculateVertical(
+        input: input,
         materialType: state.selectedTile!.materialTypeString,
         slateTileHeight: state.selectedTile!.slateTileHeight,
         maxGauge: state.selectedTile!.maxGauge,
         minGauge: state.selectedTile!.minGauge,
-        useDryRidge: state.useDryRidge,
       );
-
-      final result = VerticalCalculationService.calculateVertical(input);
       state = state.copyWith(verticalResult: result, isLoading: false);
     } catch (e) {
       state = state.copyWith(
@@ -157,7 +159,7 @@ class CalculatorNotifier extends StateNotifier<CalculatorState> {
         useDryVerge: state.useDryVerge,
         abutmentSide: state.abutmentSide,
         useLHTile: state.useLHTile,
-        lhTileWidth: state.selectedTile!.defaultCrossBonded ? state.selectedTile!.tileCoverWidth : 0,
+        lhTileWidth: state.selectedTile!.leftHandTileWidth ?? 0,
         crossBonded: state.crossBonded,
       );
 
@@ -176,7 +178,8 @@ class CalculatorNotifier extends StateNotifier<CalculatorState> {
   }
 }
 
-final calculatorProvider = StateNotifierProvider<CalculatorNotifier, CalculatorState>((ref) {
+final calculatorProvider =
+    StateNotifierProvider<CalculatorNotifier, CalculatorState>((ref) {
   return CalculatorNotifier();
 });
 

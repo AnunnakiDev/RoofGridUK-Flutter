@@ -1,8 +1,11 @@
+// lib/screens/auth/forgot_password_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:roofgrid_uk/app/auth/providers/auth_provider.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:roofgriduk/providers/auth_provider.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+
+// Rest of the file remains the same
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});

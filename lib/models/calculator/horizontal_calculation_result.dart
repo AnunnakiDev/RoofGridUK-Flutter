@@ -25,16 +25,16 @@ class HorizontalCalculationResult {
 
   factory HorizontalCalculationResult.fromJson(Map<String, dynamic> json) {
     return HorizontalCalculationResult(
-      width: json['Width'],
-      solution: json['Solution'],
-      newWidth: json['New Width'],
-      lhOverhang: json['LH Overhang'],
-      rhOverhang: json['RH Overhang'],
-      cutTile: json['Cut Tile'],
-      firstMark: json['1st Mark'],
-      secondMark: json['2nd Mark'],
-      marks: json['Marks'],
-      splitMarks: json['Split Marks'],
+      width: json['Width'] as int,
+      solution: json['Solution'] as String,
+      newWidth: json['New Width'] as int,
+      lhOverhang: json['LH Overhang'] as int?,
+      rhOverhang: json['RH Overhang'] as int?,
+      cutTile: json['Cut Tile'] as int?,
+      firstMark: json['1st Mark'] as int,
+      secondMark: json['2nd Mark'] as int?,
+      marks: json['Marks'] as String,
+      splitMarks: json['Split Marks'] as String?,
     );
   }
 

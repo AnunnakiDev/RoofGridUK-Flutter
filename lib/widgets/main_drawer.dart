@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:roofgrid_uk/app/auth/models/user_model.dart';
-import 'package:roofgrid_uk/app/auth/providers/auth_provider.dart';
+import 'package:roofgriduk/providers/auth_provider.dart';
 
 class MainDrawer extends ConsumerWidget {
   const MainDrawer({super.key});
@@ -15,187 +14,149 @@ class MainDrawer extends ConsumerWidget {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          userAsync.when(
-            data: (user) => _buildUserHeader(context, user),
-            loading: () => _buildLoadingHeader(context),
-            error: (_, __) => _buildErrorHeader(context),
-          ),
-
-          // Main Navigation
-          const SizedBox(height: 8),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text(
-              'MAIN NAVIGATION',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
+          DrawerHeader(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Theme.of(context).colorScheme.primary,
+                  Theme.of(context).colorScheme.primaryContainer,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'RoofGrid UK',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                userAsync.when(
+                  data: (user) {
+                    if (user == null) {
+                      return const Text(
+                        'Not signed in',
+                        style: TextStyle(color: Colors.white70),
+                      );
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user.displayName ?? 'User',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          user.email ?? 'No Email',
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: user.isPro ? Colors.green : Colors.grey,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            user.isPro ? 'Pro' : 'Free',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                  loading: () => const CircularProgressIndicator(),
+                  error: (error, stackTrace) => Text(
+                    'Error: $error',
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                ),
+              ],
+            ),
           ),
-          _buildNavItem(
-            context,
-            icon: Icons.home_outlined,
-            title: 'Home',
-            route: '/home',
-          ),
-          _buildNavItem(
-            context,
-            icon: Icons.calculate_outlined,
-            title: 'Calculators',
-            route: '/calculator',
-          ),
-          userAsync.when(
-            data: (user) {
-              if (user != null && user.isAdmin) {
-                return _buildNavItem(
-                  context,
-                  icon: Icons.admin_panel_settings_outlined,
-                  title: 'Admin Dashboard',
-                  route: '/admin',
-                );
-              } else {
-                return const SizedBox.shrink();
-              }
+          ListTile(
+            leading: const Icon(Icons.home),
+            title: const Text('Home'),
+            onTap: () {
+              context.go('/home');
+              Navigator.pop(context);
             },
-            loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
           ),
-
-          const Divider(),
-
-          // Support Section
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text(
-              'SUPPORT',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
-              ),
-            ),
+          ListTile(
+            leading: const Icon(Icons.calculate),
+            title: const Text('Calculator'),
+            onTap: () {
+              context.go('/calculator');
+              Navigator.pop(context);
+            },
           ),
-          _buildNavItem(
-            context,
-            icon: Icons.help_outline,
-            title: 'FAQs',
-            route: '/support/faq',
+          ListTile(
+            leading: const Icon(Icons.save),
+            title: const Text('Saved Results'),
+            onTap: () {
+              context.go('/results');
+              Navigator.pop(context);
+            },
           ),
-          _buildNavItem(
-            context,
-            icon: Icons.email_outlined,
-            title: 'Contact Us',
-            route: '/support/contact',
+          ListTile(
+            leading: const Icon(Icons.grid_view),
+            title: const Text('Manage Tiles'),
+            onTap: () {
+              context.go('/tiles');
+              Navigator.pop(context);
+            },
           ),
-          _buildNavItem(
-            context,
-            icon: Icons.description_outlined,
-            title: 'Legal Information',
-            route: '/support/legal',
+          ListTile(
+            leading: const Icon(Icons.star),
+            title: const Text('Upgrade to Pro'),
+            onTap: () {
+              context.go('/subscription');
+              Navigator.pop(context);
+            },
           ),
-
-          const Divider(),
-
-          // Account Section
+          ListTile(
+            leading: const Icon(Icons.support),
+            title: const Text('Support'),
+            onTap: () {
+              context.go('/support/contact');
+              Navigator.pop(context);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.admin_panel_settings),
+            title: const Text('Admin Dashboard'),
+            onTap: () {
+              context.go('/admin');
+              Navigator.pop(context);
+            },
+          ),
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Sign Out'),
             onTap: () async {
-              Navigator.pop(context); // Close drawer
-              await ref.read(authServiceProvider).signOut();
-              // Router will handle redirect
+              await ref.read(authProvider.notifier).signOut();
+              Navigator.pop(context);
+              // Router will handle navigation to /auth/login
             },
           ),
         ],
       ),
     );
-  }
-
-  Widget _buildUserHeader(BuildContext context, UserModel? user) {
-    return UserAccountsDrawerHeader(
-      accountName: Text(user?.displayName ?? 'User'),
-      accountEmail: Text(user?.email ?? ''),
-      currentAccountPicture: CircleAvatar(
-        backgroundColor: Colors.white,
-        child: Text(
-          _getInitials(user?.displayName ?? 'U'),
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-      ),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
-      ),
-    );
-  }
-
-  Widget _buildLoadingHeader(BuildContext context) {
-    return DrawerHeader(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
-      ),
-      child: const Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      ),
-    );
-  }
-
-  Widget _buildErrorHeader(BuildContext context) {
-    return DrawerHeader(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
-      ),
-      child: const Center(
-        child: Text(
-          'Error loading profile',
-          style: TextStyle(color: Colors.white),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String route,
-  }) {
-    final currentLocation = GoRouterState.of(context).uri.path;
-    final isSelected = currentLocation.startsWith(route);
-
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: isSelected ? Theme.of(context).colorScheme.primary : null,
-      ),
-      title: Text(
-        title,
-        style: isSelected
-            ? TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
-              )
-            : null,
-      ),
-      selected: isSelected,
-      onTap: () {
-        Navigator.pop(context); // Close drawer
-        if (currentLocation != route) {
-          context.go(route);
-        }
-      },
-    );
-  }
-
-  String _getInitials(String name) {
-    if (name.isEmpty) return 'U';
-    final parts = name.trim().split(' ');
-    if (parts.length == 1) return parts[0][0].toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 }

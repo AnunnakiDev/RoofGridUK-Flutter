@@ -1,173 +1,266 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:roofgridk_app/utils/firebase_error_handler.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:roofgriduk/models/user_model.dart';
 
-class AuthProvider with ChangeNotifier {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  bool _isAuthenticated = false;
-  User? _user;
-  String? _userEmail;
-  bool _isPro = false;
+class AuthState {
+  final bool isAuthenticated;
+  final String? userId;
+  final String? error;
+  final bool isLoading;
 
-  bool get isAuthenticated => _isAuthenticated;
-  User? get user => _user;
-  String? get userId => _user?.uid;
-  String? get userEmail => _userEmail;
-  bool get isPro => _isPro;
+  const AuthState({
+    this.isAuthenticated = false,
+    this.userId,
+    this.error,
+    this.isLoading = false,
+  });
 
-  AuthProvider() {
-    // Listen for auth state changes
-    _auth.authStateChanges().listen((User? user) {
-      _user = user;
-      _isAuthenticated = user != null;
-      _userEmail = user?.email;
-      notifyListeners();
-    });
-    
-    // Try to auto-login
-    tryAutoLogin();
+  AuthState copyWith({
+    bool? isAuthenticated,
+    String? userId,
+    String? error,
+    bool? isLoading,
+  }) {
+    return AuthState(
+      isAuthenticated: isAuthenticated ?? this.isAuthenticated,
+      userId: userId ?? this.userId,
+      error: error ?? this.error,
+      isLoading: isLoading ?? this.isLoading,
+    );
   }
+}
+
+class AuthNotifier extends StateNotifier<AuthState> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  AuthNotifier() : super(const AuthState());
 
   Future<bool> login(String email, String password) async {
     try {
+      state = state.copyWith(isLoading: true, error: null);
       final userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      
-      _user = userCredential.user;
-      _isAuthenticated = _user != null;
-      _userEmail = _user?.email;
-      
-      // Store auth data for auto-login
-      if (_isAuthenticated) {
-        final prefs = await SharedPreferences.getInstance();
-        prefs.setBool('isAuthenticated', true);
-        
-        // Check if user is pro
-        await _checkProStatus();
-      }
-      
-      notifyListeners();
-      return _isAuthenticated;
-    } on FirebaseAuthException catch (e) {
-      _isAuthenticated = false;
-      notifyListeners();
-      throw FirebaseAuthException(
-        code: e.code,
-        message: FirebaseErrorHandler.getAuthErrorMessage(e),
+      await _analytics.logLogin(loginMethod: 'email');
+      state = state.copyWith(
+        isAuthenticated: true,
+        userId: userCredential.user?.uid,
+        isLoading: false,
       );
+      return true;
+    } on FirebaseAuthException catch (e) {
+      state = state.copyWith(
+        isAuthenticated: false,
+        error: mapFirebaseError(e.code),
+        isLoading: false,
+      );
+      return false;
     } catch (e) {
-      _isAuthenticated = false;
-      notifyListeners();
-      rethrow;
+      state = state.copyWith(
+        isAuthenticated: false,
+        error: 'An unexpected error occurred.',
+        isLoading: false,
+      );
+      return false;
     }
   }
-  
-  Future<bool> register(String email, String password, String name) async {
+
+  Future<bool> signInWithGoogle() async {
     try {
+      state = state.copyWith(isLoading: true, error: null);
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        state = state.copyWith(isLoading: false);
+        return false; // User cancelled
+      }
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      final userCredential = await _auth.signInWithCredential(credential);
+      await _analytics.logLogin(loginMethod: 'google');
+      state = state.copyWith(
+        isAuthenticated: true,
+        userId: userCredential.user?.uid,
+        isLoading: false,
+      );
+      return true;
+    } on FirebaseAuthException catch (e) {
+      state = state.copyWith(
+        isAuthenticated: false,
+        error: mapFirebaseError(e.code),
+        isLoading: false,
+      );
+      return false;
+    } catch (e) {
+      state = state.copyWith(
+        isAuthenticated: false,
+        error: 'An unexpected error occurred.',
+        isLoading: false,
+      );
+      return false;
+    }
+  }
+
+  Future<bool> resetPassword(String email) async {
+    try {
+      state = state.copyWith(isLoading: true, error: null);
+      await _auth.sendPasswordResetEmail(email: email);
+      await _analytics.logEvent(name: 'password_reset');
+      state = state.copyWith(isLoading: false);
+      return true;
+    } on FirebaseAuthException catch (e) {
+      state = state.copyWith(
+        error: mapFirebaseError(e.code),
+        isLoading: false,
+      );
+      return false;
+    } catch (e) {
+      state = state.copyWith(
+        error: 'An unexpected error occurred.',
+        isLoading: false,
+      );
+      return false;
+    }
+  }
+
+  Future<void> signOut() async {
+    try {
+      await _auth.signOut();
+      await _googleSignIn.signOut();
+      await _analytics.logEvent(name: 'sign_out');
+      state = const AuthState();
+    } catch (e) {
+      state = state.copyWith(error: 'Failed to sign out: $e');
+    }
+  }
+
+  Future<bool> createUserWithEmailAndPassword(
+      String email, String password) async {
+    try {
+      state = state.copyWith(isLoading: true, error: null);
       final userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-      
-      // Update user profile with display name
-      await userCredential.user?.updateDisplayName(name);
-      
-      _user = userCredential.user;
-      _isAuthenticated = _user != null;
-      _userEmail = _user?.email;
+      state = state.copyWith(
+        isAuthenticated: true,
+        userId: userCredential.user?.uid,
+        isLoading: false,
+      );
+      return true;
+    } on FirebaseAuthException catch (e) {
+      state = state.copyWith(
+        isAuthenticated: false,
+        error: mapFirebaseError(e.code),
+        isLoading: false,
+      );
+      return false;
+    } catch (e) {
+      state = state.copyWith(
+        isAuthenticated: false,
+        error: 'An unexpected error occurred.',
+        isLoading: false,
+      );
+      return false;
+    }
+  }
 
-      // Store auth data for auto-login
-      if (_isAuthenticated) {
-        final prefs = await SharedPreferences.getInstance();
-        prefs.setBool('isAuthenticated', true);
+  Future<void> updateUserProfile(
+      {String? displayName, String? photoURL}) async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      await user.updateDisplayName(displayName);
+      await user.updatePhotoURL(photoURL);
+      await _firestore.collection('users').doc(user.uid).update({
+        if (displayName != null) 'displayName': displayName,
+        if (photoURL != null) 'photoURL': photoURL,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      });
+    }
+  }
+
+  Future<bool> upgradeToProStatus() async {
+    try {
+      state = state.copyWith(isLoading: true, error: null);
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'No user logged in.',
+        );
+        return false;
       }
-      
-      notifyListeners();
-      return _isAuthenticated;
-    } on FirebaseAuthException catch (e) {
-      _isAuthenticated = false;
-      notifyListeners();
-      throw FirebaseAuthException(
-        code: e.code,
-        message: FirebaseErrorHandler.getAuthErrorMessage(e),
-      );
-    } catch (e) {
-      _isAuthenticated = false;
-      notifyListeners();
-      rethrow;
-    }
-  }
-
-  Future<bool> tryAutoLogin() async {
-    // Firebase Auth handles persistence by default
-    // This will just check if we're already logged in
-    final currentUser = _auth.currentUser;
-    if (currentUser != null) {
-      _user = currentUser;
-      _isAuthenticated = true;
-      _userEmail = currentUser.email;
-      
-      // Check pro status
-      await _checkProStatus();
-      
-      notifyListeners();
+      await FirebaseFirestore.instance.collection('users').doc(userId).set({
+        'role': 'pro',
+        'proTrialStartDate': Timestamp.now(),
+        'proTrialEndDate':
+            Timestamp.fromDate(DateTime.now().add(const Duration(days: 14))),
+      }, SetOptions(merge: true));
+      await _analytics.logEvent(name: 'upgrade_to_pro');
+      state = state.copyWith(isLoading: false);
       return true;
-    }
-    
-    return false;
-  }
-
-  Future<void> logout() async {
-    try {
-      await _auth.signOut();
-      
-      _isAuthenticated = false;
-      _user = null;
-      _userEmail = null;
-      _isPro = false;
-
-      final prefs = await SharedPreferences.getInstance();
-      prefs.clear();
-
-      notifyListeners();
     } catch (e) {
-      // Handle logout errors
-      rethrow;
-    }
-  }
-  
-  Future<bool> resetPassword(String email) async {
-    try {
-      await _auth.sendPasswordResetEmail(email: email);
-      return true;
-    } on FirebaseAuthException catch (e) {
-      throw FirebaseAuthException(
-        code: e.code,
-        message: FirebaseErrorHandler.getAuthErrorMessage(e),
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Failed to upgrade: $e',
       );
-    } catch (e) {
-      rethrow;
+      return false;
     }
   }
-  
-  Future<void> _checkProStatus() async {
-    // TODO: Implement checking if user has pro subscription from Firestore
-    // This is a placeholder implementation
-    final prefs = await SharedPreferences.getInstance();
-    _isPro = prefs.getBool('isPro') ?? false;
-    notifyListeners();
+
+  bool isUserLoggedIn() {
+    return _auth.currentUser != null;
   }
-  
-  Future<void> upgradeToProStatus() async {
-    // TODO: Implement actual upgrade to pro logic with payment processing
-    // This is a placeholder implementation for now
-    _isPro = true;
-    final prefs = await SharedPreferences.getInstance();
-    prefs.setBool('isPro', true);
-    notifyListeners();
+
+  String mapFirebaseError(String code) {
+    switch (code) {
+      case 'user-not-found':
+      case 'wrong-password':
+        return 'Invalid email or password.';
+      case 'invalid-email':
+        return 'Invalid email format.';
+      case 'email-already-in-use':
+        return 'Email already in use.';
+      case 'weak-password':
+        return 'Password is too weak.';
+      case 'too-many-requests':
+        return 'Too many attempts. Try again later.';
+      default:
+        return 'An error occurred. Please try again.';
+    }
   }
 }
-}
+
+final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+  return AuthNotifier();
+});
+
+final authStateStreamProvider = StreamProvider<UserModel?>((ref) {
+  final authNotifier = ref.watch(authProvider.notifier);
+  return authNotifier._auth.authStateChanges().map(
+        (User? user) => user != null ? UserModel.fromFirebaseUser(user) : null,
+      );
+});
+
+final currentUserProvider = StreamProvider<UserModel?>((ref) {
+  final authState = ref.watch(authProvider);
+  if (authState.userId == null) {
+    return Stream.value(null);
+  }
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(authState.userId)
+      .snapshots()
+      .map((snapshot) =>
+          snapshot.exists ? UserModel.fromFirestore(snapshot) : null);
+});
