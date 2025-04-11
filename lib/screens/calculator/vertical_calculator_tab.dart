@@ -9,6 +9,7 @@ import '../../app/calculator/models/vertical_calculation_input.dart';
 import '../../app/calculator/models/vertical_calculation_result.dart';
 import '../../app/auth/services/permissions_service.dart';
 import '../../app/theme/app_theme.dart';
+import 'package:roofgridk_app/screens/auth/subscription_screen.dart';
 
 class VerticalCalculatorTab extends StatefulWidget {
   final UserModel user;
@@ -106,9 +107,10 @@ class _VerticalCalculatorTabState extends State<VerticalCalculatorTab> {
           FilledButton(
             onPressed: () {
               Navigator.of(context).pop();
-              // Navigate to upgrade screen
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Upgrade screen coming soon!')),
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const SubscriptionScreen(),
+                ),
               );
             },
             child: const Text('Upgrade Now'),
@@ -400,11 +402,11 @@ class _VerticalCalculatorTabState extends State<VerticalCalculatorTab> {
                         Center(
                           child: OutlinedButton.icon(
                             onPressed: () {
-                              // TODO: Navigate to upgrade screen
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content:
-                                        Text('Upgrade screen coming soon!')),
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const SubscriptionScreen(),
+                                ),
                               );
                             },
                             icon: const Icon(Icons.star),

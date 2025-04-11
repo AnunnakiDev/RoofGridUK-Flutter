@@ -7,9 +7,10 @@ import 'package:roofgrid_uk/app/auth/providers/auth_provider.dart';
 import 'package:roofgrid_uk/app/auth/services/permissions_service.dart';
 import 'package:roofgrid_uk/app/results/models/saved_result.dart';
 import 'package:roofgrid_uk/app/results/providers/results_provider.dart';
+import 'package:roofgridk_app/screens/auth/subscription_screen.dart';
 
 class SavedResultsScreen extends ConsumerStatefulWidget {
-  const SavedResultsScreen({Key? key}) : super(key: key);
+  const SavedResultsScreen({super.key});
 
   @override
   ConsumerState<SavedResultsScreen> createState() => _SavedResultsScreenState();
@@ -57,8 +58,11 @@ class _SavedResultsScreenState extends ConsumerState<SavedResultsScreen> {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () {
-                  // Navigate to upgrade screen
-                  context.push('/upgrade');
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const SubscriptionScreen(),
+                    ),
+                  );
                 },
                 child: const Text('Upgrade to Pro'),
               ),
@@ -316,21 +320,55 @@ class _SavedResultsScreenState extends ConsumerState<SavedResultsScreen> {
       onDismissed: (direction) async {
         final user = ref.read(currentUserProvider).valueOrNull;
         if (user != null) {
-          await ref
-              .read(resultsServiceProvider)
-              .deleteResult(user.uid, result.id);
+          // Store a copy of the result for potential restoration
+          final deletedResult = result;
 
-          // Show confirmation
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Result deleted'),
-                action: SnackBarAction(
-                  label: 'Undo',
-                  onPressed: null, // TODO: Implement undo functionality
+          try {
+            // Delete the result from the database
+            await ref
+                .read(resultsServiceProvider)
+                .deleteResult(user.uid, result.id);
+
+            // Show confirmation with undo option
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Result deleted'),
+                  action: SnackBarAction(
+                    label: 'Undo',
+                    onPressed: () async {
+                      // Restore the deleted result
+                      try {
+                        await ref.read(resultsServiceProvider).restoreResult(
+                              user.uid,
+                              deletedResult,
+                            );
+                        // Refresh the results list
+                        ref.refresh(savedResultsProvider);
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content:
+                                    Text('Failed to restore: ${e.toString()}')),
+                          );
+                        }
+                      }
+                    },
+                  ),
                 ),
-              ),
-            );
+              );
+            }
+          } catch (e) {
+            // Handle error during deletion
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content: Text('Error deleting result: ${e.toString()}')),
+              );
+              // Refresh the results list to ensure UI consistency
+              ref.refresh(savedResultsProvider);
+            }
           }
         }
       },

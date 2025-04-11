@@ -8,6 +8,7 @@ import 'package:roofgrid_uk/app/calculator/providers/calculator_provider.dart';
 import 'package:roofgrid_uk/app/tiles/models/tile_model.dart';
 import 'package:roofgrid_uk/app/tiles/services/tile_service.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:roofgridk_app/screens/auth/subscription_screen.dart';
 
 class CalculatorScreen extends ConsumerStatefulWidget {
   const CalculatorScreen({super.key});
@@ -163,10 +164,9 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen>
           FilledButton(
             onPressed: () {
               Navigator.of(context).pop();
-              // TODO: Navigate to upgrade screen
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Upgrade feature coming soon!'),
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const SubscriptionScreen(),
                 ),
               );
             },

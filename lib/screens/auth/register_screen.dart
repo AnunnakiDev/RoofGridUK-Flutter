@@ -1,7 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:roofgrid_uk/app/auth/providers/auth_provider.dart';
+import 'package:roofgridk_app/providers/auth_provider.dart';
+import 'package:roofgridk_app/utils/firebase_error_handler.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -37,17 +39,25 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         _isLoading = true;
         _errorMessage = null;
       });
-
       try {
-        await ref.read(authServiceProvider).createUserWithEmailAndPassword(
-              _emailController.text.trim(),
-              _passwordController.text,
-              _nameController.text.trim(),
-            );
-        // Navigation will be handled by the router
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final success = await authProvider.register(
+          _emailController.text.trim(),
+          _passwordController.text,
+          _nameController.text.trim(),
+        );
+
+        if (success && mounted) {
+          // Success - navigation will be handled by the router
+          context.go('/home');
+        }
+      } on FirebaseAuthException catch (e) {
+        setState(() {
+          _errorMessage = FirebaseErrorHandler.getAuthErrorMessage(e);
+        });
       } catch (e) {
         setState(() {
-          _errorMessage = _getFirebaseErrorMessage(e.toString());
+          _errorMessage = 'An unexpected error occurred. Please try again.';
         });
       } finally {
         if (mounted) {

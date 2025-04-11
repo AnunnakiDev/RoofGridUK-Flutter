@@ -1,7 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:roofgrid_uk/app/auth/providers/auth_provider.dart';
+import 'package:roofgridk_app/providers/auth_provider.dart';
+import 'package:roofgridk_app/utils/firebase_error_handler.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
@@ -31,11 +33,11 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         _isLoading = true;
         _errorMessage = null;
       });
-
       try {
-        await ref.read(authServiceProvider).resetPassword(
-              _emailController.text.trim(),
-            );
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        await authProvider.resetPassword(
+          _emailController.text.trim(),
+        );
 
         if (mounted) {
           setState(() {
@@ -43,10 +45,17 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             _isLoading = false;
           });
         }
+      } on FirebaseAuthException catch (e) {
+        if (mounted) {
+          setState(() {
+            _errorMessage = FirebaseErrorHandler.getAuthErrorMessage(e);
+            _isLoading = false;
+          });
+        }
       } catch (e) {
         if (mounted) {
           setState(() {
-            _errorMessage = _getFirebaseErrorMessage(e.toString());
+            _errorMessage = 'An unexpected error occurred. Please try again.';
             _isLoading = false;
           });
         }
